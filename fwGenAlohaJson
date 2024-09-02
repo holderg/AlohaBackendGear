@@ -1,0 +1,181 @@
+#!/bin/bash
+
+CmdName=$(basename "$0")
+
+Syntax="${CmdName} {-b|-f} {SubjectUid}"
+
+function AlohaStanza {
+	 local AlohaFlag="$1"
+	 local AlohaArg="$2"
+	 local FileUid="$3"
+	 local FilePath="$4"
+	 local FileFwPath="$5"
+
+	 echo "{ \"$AlohaFlag\": {
+	      \"AlohaArg\":	\"$AlohaArg\",
+	      \"FileUid\":	\"$FileUid\",
+	      \"FilePath\":	\"$FilePath\",
+	      \"FileFwPath\":	\"$FileFwPath\"
+	 }}" | jq .
+}
+
+function json2Stanza {
+	 local FileIdSelectionJq="$1"
+	 local Dir="$2"
+	 local Id2LabelsFile="$3"
+	 local Id2FileLabelsFile="$4"
+	 local AlohaArg="$5"
+	 local AlohaFlag="$6"
+		
+	 local FileId=$( jq -r "$FileIdSelectionJq" )
+	 local FileName=$(echo "\"$FileId\"" | jq -r --slurpfile Id2Labels "$Id2LabelsJsonFile" '$Id2Labels[][.]')
+	 local FwFilePath=$(echo "\"$FileId\"" | jq -r --slurpfile Id2FwFilePath "$Id2FwFilePathJsonFile" '$Id2FwFilePath[][.]')
+	 local FilePath="${Dir}/${FileName}"
+
+# *** don't have to download here, just building the stanza
+# downloads $FileId to $Dir as $FileName
+#	 fwget -f --download --download-dir "$Dir" "$FileId"
+
+	 AlohaStanza "$AlohaArg" "$AlohaFlag" "$FileId" "$FilePath" "$FwFilePath"
+}
+
+function getBaselineStanza {
+	 local Dir="$1"
+	 local SubjectJsonFile="$2"
+	 local Id2LabelsJsonFile="$3"
+	 local Id2FwFilePathJsonFile="$4"
+	 local BaselineSessionId="$5"
+
+
+	 local BaselineTrimmedT1FileIdSelectionJq='.acquisitions[].files[] | select((.tags | (any(. == "Trimmed") and any(. == "AlohaInput"))) and (.classification["Measurement"] | any(. == "T1")) ) | .file_id'
+ 	 id2Json "$BaselineSessionId" "$SubjectJsonFile" | json2Stanza "$BaselineTrimmedT1FileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineTrimmedT1" "-b"
+
+	 local BaselineLeftSegmentedT1FileIdSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T1") and any(. == "Segmentation") and any(. == "Left") ) ) | .file_id' 
+	 id2Json "$BaselineSessionId" "$SubjectJsonFile" | json2Stanza "$BaselineLeftSegmentedT1FileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineLeftSegmentedT1" "-r"
+
+	 local BaselineRightSegmentedT1FileIdSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T1") and any(. == "Segmentation") and any(. == "Right") ) ) | .file_id'
+	 id2Json "$BaselineSessionId" "$SubjectJsonFile" | json2Stanza "$BaselineRightSegmentedT1FileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineRightSegmentedT1" "-s"
+
+	 local BaselineLeftT2SegmentedFileIdSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T2") and any(. == "Segmentation") and any(. == "Left") ) ) | .file_id'
+	 id2Json "$BaselineSessionId" "$SubjectJsonFile" | json2Stanza "$BaselineLeftT2SegmentedFileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineLeftT2Segmented" "-t"
+
+	 local BaselineRightSegmentedT2FileIdSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T2") and any(. == "Segmentation") and any(. == "Right") ) ) | .file_id'
+	 id2Json "$BaselineSessionId" "$SubjectJsonFile" | json2Stanza "$BaselineRightSegmentedT2FileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineRightSegmentedT2" "-u"
+
+	 local BaselineT2FileIdSelectionJq='.acquisitions[].files[] | select( (.tags | any(. == "AlohaInput")) and (.classification["Measurement"] | any(. == "T2")) ) | .file_id'
+	 id2Json "$BaselineSessionId" "$SubjectJsonFile" | json2Stanza "$BaselineT2FileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineT2" "-c"
+		
+}
+
+function getFollowupStanza {
+	 local Dir="$1"
+	 local SubjectJsonFile="$2"
+	 local Id2LabelJsonFile="$3"
+	 local Id2FwFilePathJsonFile="$4"
+	 local FollowupSessionId="$5"
+	 
+	 local FollowupTrimmedT1FileIdSelectionJq='.acquisitions[].files[] | select((.tags | (any(. == "Trimmed") and any(. == "AlohaInput"))) and (.classification["Measurement"] | any(. == "T1")) ) | .file_id'
+	 id2Json "$FollowupSessionId" "$SubjectJsonFile" | json2Stanza "$FollowupTrimmedT1FileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "FollowupTrimmedT1" "-f"
+
+	 local FollowupT2FileIdSelectionJq='.acquisitions[].files[] | select( (.tags | any(. == "AlohaInput")) and (.classification["Measurement"] | any(. == "T2")) ) | .file_id'
+	 id2Json "$FollowupSessionId" "$SubjectJsonFile" | json2Stanza "$FollowupT2FileIdSelectionJq" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "FollowupT2" "-g"
+}
+
+function id2Json {
+	 local Id="$1"
+	 local JsonFile="$2"
+
+	 jq "..|select(._id == \"$Id\")?" "$JsonFile"
+}
+
+function mkContainerDirName {
+	 local Id="$1"
+	 local JsonFile="$2"
+
+	 id2Json "$Id" "$JsonFile" | jq -r '.label + "-" + ._id' | sort -u
+}
+
+while getopts bfs: arg
+do
+	case "$arg" in
+	     b|f|s)
+		eval "opt_${arg}='${OPTARG:=1}'"
+		;;
+	esac
+done
+
+shift $(( "$OPTIND" - 1))
+
+if [ -n "$opt_d" ]
+then
+	TmpDir="$opt_d"
+else
+	TmpDir=$(mktemp -d "${TMPDIR:=/tmp}/${CmdName}-XXXXXXX")
+fi
+
+#
+# {
+#     SubjectUid: Uid,
+#     SubjectLabel: Label,
+#     Baseline: {
+#         BaselineTrimmedT1File: { FileUid: FileUId, FileName: FileName, Flag: -b, Path: dwolklab/NACC-SC/1234/1234-2024-08-01/T1/filename.nii.gz }
+#         BaselineLeftSegmentedT1File: { FileUid: FileUId, FileName: FileName, Flag: -r }
+#         BaselineRightSegmentedT1File: { FileUid: FileUId, FileName: FileName, Flag: -s }
+#         BaselineT2File: { FileUid: FileUId, FileName: FileName, Flag: -s }
+#         BaselineLeftSegmentedT2File: { FileUid: FileUId, FileName: FileName, Flag: -r }
+#         BaselineRightSegmentedT2File: { FileUid: FileUId, FileName: FileName, Flag: -s }
+#     },
+#     Followup: [
+#         {
+#             FollowupTrimmedT1File: { FileUid: FileUId, FileName: FileName, Flag: -b, Path: dwolklab/NACC-SC/1234/1234-2024-08-01/T1/filename.nii.gz }
+#             FollowupT2File: { FileUid: FileUId, FileName: FileName, Flag: -s }
+#         },
+#         {
+#             FollowupTrimmedT1File: { FileUid: FileUId, FileName: FileName, Flag: -b, Path: dwolklab/NACC-SC/1234/1234-2024-08-01/T1/filename.nii.gz }
+#             FollowupT2File: { FileUid: FileUId, FileName: FileName, Flag: -s }
+#         }
+#     ]
+# }
+#     
+for SubjectId in "$@"
+do
+
+	TmpSubjectDir="${TmpDir}/${SubjectId}"
+	[ -e "$TmpSubjectDir" ] || mkdir -p "${TmpSubjectDir}"
+
+	TmpSubjectJsonFile="${TmpSubjectDir}/Subject.json"
+	fwget -1 -raG "$SubjectId" > "$TmpSubjectJsonFile"
+
+	SubjectDir="${TmpDir}"/$(mkContainerDirName "$SubjectId" "$TmpSubjectJsonFile")
+	mv "$TmpSubjectDir" "$SubjectDir"
+
+	SubjectJsonFile="${SubjectDir}/Subject.json"
+	Id2LabelsJsonFile="${SubjectDir}/Id2Labels.json"
+	Id2FwFilePathJsonFile="${SubjectDir}/Id2FwFilePath.json"
+
+	fwContainer2Id2Labels "$SubjectJsonFile" > "$Id2LabelsJsonFile"
+	fwContainer2Id2Labels -n -f "$Id2LabelsJsonFile" "$SubjectJsonFile" > "$Id2FwFilePathJsonFile"
+	
+	#
+	# Get all the baseline Uids.  Make sure there is only one baseline session
+	#
+	BaselineSessionId=( $(jq -r '..|select(.tags|any(. == "Baseline"))?' "$SubjectJsonFile" | jq -r ._id) )
+	if [ "${#BaselineSessionId[@]}" != 1 ]
+	then
+		echo "${CmdName} : '${#BaselineSessionId[@]}' baseline sessions found.  Not just one. Bailing" 1>&2
+		exit 1
+	fi
+
+	BaselineDir="$SubjectDir"/$(mkContainerDirName "$BaselineSessionId" "$SubjectJsonFile")
+	[ -e "$BaselineDir" ] || mkdir -p "$BaselineDir" 
+
+	getBaselineStanza "$BaselineDir" "$SubjectJsonFile" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "$BaselineSessionId" | jq -s '{"Baseline": (. | add)}'
+
+	FollowupSessionIds=( $(jq -r '..|select(.tags|any(. == "Followup"))?' "$SubjectJsonFile" | jq -r ._id) )
+	for FollowupSessionId in "${FollowupSessionIds[@]}"
+	do
+		FollowupDir="$SubjectDir"/$(mkContainerDirName "$FollowupSessionId" "$SubjectJsonFile")		
+		getFollowupStanza "$FollowupDir" "$SubjectJsonFile" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "$FollowupSessionId" | jq -s '. | add'
+	done | jq -s '{"Followup": .}'
+
+done
