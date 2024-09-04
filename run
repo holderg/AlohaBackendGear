@@ -2,7 +2,11 @@
 
 CmdName=$(basename "$0")
 
-set -x -e
+function sys {
+	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
+	[ -z "$opt_n" ] && "$@"
+}
+
 #
 #                aloha_main: automatic longitudinal hippocampal atrophy
 #                usage:
@@ -75,7 +79,7 @@ function mkBaselineHippocampusSegmentation {
         #
         if [ -e "$BaselineLeftSegmented2dFocalFastSpinEcho" ] && [ ! -e "$BaselineLeftHippocampusSegmentation" ]
         then
-            c3d "$BaselineT1wMri" "$BaselineSegmented2dFocalFastSpinEcho" \
+            sys c3d "$BaselineT1wMri" "$BaselineSegmented2dFocalFastSpinEcho" \
                           -interp NN -reslice-identity \
                           "$BaselineLeftHippocampusSegmentation"
         fi
@@ -113,19 +117,19 @@ shift $(("$OPTIND" - 1))
 	 [ -d "$TmpSubjectDir" ] || mkdir -p "$TmpSubjectDir"
          TmpSubjectJsonFile="$TmpSubjectDir"/SubjectAloha.json
 
-         fwGenAlohaJson -v -d "$TmpSubjectDir" "$SubjectId" > "$TmpSubjectJsonFile"
+         sys fwGenAlohaJson -v -d "$TmpSubjectDir" "$SubjectId" > "$TmpSubjectJsonFile"
 
 	 SubjectLabel=$(jq -r -n --slurpfile Id2Labels "${TmpSubjectDir}/Id2Labels.json" '$Id2Labels[]["'"$SubjectId"'"]')
 	 SubjectDir="${WDIR}/${SubjectLabel}-${SubjectId}"
 	 SubjectJsonFile="${SubjectDir}/SubjectAloha.json"
 	 if [ -e "$SubjectJsonFile" ]
 	 then
-		 mv "$TmpSubjectJsonFile" "$SubjectJsonFile"
+		 sys mv "$TmpSubjectJsonFile" "$SubjectJsonFile"
 	 else
-		 mv "$TmpSubjectDir" "$SubjectDir"
+		 sys mv "$TmpSubjectDir" "$SubjectDir"
 	 fi
 
-         fwDownloadAlohaFiles -v -d "$SubjectDir" "$SubjectJsonFile"
+         sys fwDownloadAlohaFiles -v -d "$SubjectDir" "$SubjectJsonFile"
 
          BaselineT1wMri="${InputDir}/2017-04-24_002_S_1155_T1w_trim.nii.gz"                    # T1w baseline 3D gradient MRI
 	 BaselineT1wMri="${SubjectDir}/"$(jq -r '.Baseline.BaselineTrimmedT1.FwFilePath' "$SubjectJsonFile")
@@ -168,12 +172,17 @@ shift $(("$OPTIND" - 1))
                 [ -n "$opt_z" ] && AlohaArg+=( -z "$opt_z" )
 	
 	
-	         if verifyAlohaInputs "${AlohaArgs[@]}"
+	         if sys verifyAlohaInputs "${AlohaArgs[@]}"
 	         then
-	              mkBaselineHippocampusSegmentation "$BaselineT1wMri" "$BaselineLeftSegmented2dFocalFastSpinEcho" "$BaselineLeftHippocampusSegmentation"
-	              mkBaselineHippocampusSegmentation "$BaselineT1wMri" "$BaselineRightSegmented2dFocalFastSpinEcho" "$BaselineRightHippocampusSegmentation"
+set -x -e
+	              [ -e "$BaselineLeftHippocampusSegmentation" ] || sys mkBaselineHippocampusSegmentation "$BaselineT1wMri"	\
+		      		"$BaselineLeftSegmented2dFocalFastSpinEcho" 							\
+				"$BaselineLeftHippocampusSegmentation"
+	              [ -e "$BaselineRightHippocampusSegmentation" ] || sys mkBaselineHippocampusSegmentation "$BaselineT1wMri"	\
+			        "$BaselineRightSegmented2dFocalFastSpinEcho"	\
+				"$BaselineRightHippocampusSegmentation"
 	 
-	    	      aloha_main.sh "${AlohaArgs[@]}"
+	    	      sys aloha_main.sh "${AlohaArgs[@]}"
 	         else
 	              echo "${CmdName} : input validation failed verifyAlohaInputs ${AlohaArgs[@]}" 1>&2
 	              exit 1
