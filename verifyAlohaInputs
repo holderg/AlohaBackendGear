@@ -1,0 +1,151 @@
+#!/bin/bash
+
+CmdName=$(basename "$0")
+
+#
+#                aloha_main: automatic longitudinal hippocampal atrophy
+#                usage:
+#                  aloha_main [options]
+# 
+#                required options:
+#                  -b image          Filename of baseline 3D gradient echo MRI (ALOHA_BL_MPRAGE, T1w)
+#                  -f image          Filename of followup 3D gradient echo MRI (ALOHA_FU_MPRAGE, T1w)
+#                  -r image          Filename of left hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_LEFT)
+#                  -s image          Filename of right hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_RIGHT)
+#                  -w path           Working/output directory
+# 
+#                optional:
+#                                    The following three arguments are required for subfield atrophy rates using T2w MRI 
+#                  -c image          Filename of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE, T2w)
+#                  -g image          Filename of followup 2D focal fast spin echo MRI  (ALOHA_FU_TSE, T2w)
+#                  -t image          Filename of left subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSESEG_LEFT)
+#                  -u image          Filename of right subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSESEG_RIGHT)
+#                  -m list           Define label map over which measurements are desired. Format is Label1:ROI1,ROI2;Label2:ROI1;Label2:ROI1,ROI2,ROI4;. 
+#                  -l list           Define the names of labels in the label map described with the -m option. Format is Label1,Label2,Label3
+#                  
+# 
+#                  -d                Enable debugging
+#                  -Q                Use Sun Grid Engine (SGE) to schedule sub-tasks in each stage. By default,
+#                                    the whole aloha_main job runs in a single process. If you are doing a lot
+#                                    of segmentations and have SGE, it is better to run each segmentation 
+#                                    (aloha_main) in a separate SGE job, rather than use the -q flag. The -q flag
+#                                    is best for when you have only a few segmentations and want them to run fast.
+#                  -q OPTS           Pass in additional options to SGE's qsub. Also enables -Q option above.
+#                  -z integer        Run only one stage (see below); also accepts range (e.g. -z 1-3)
+#                  -H                Tell ALOHA to use external hooks for reporting progress, errors, and warnings.
+#                                    The environment variables ALOHA_HOOK_SCRIPT must be set to point to the appropriate
+#                                    script. For an example script with comments, see ashs_default_hook.sh
+#                                    The purpose of the hook is to allow intermediary systems (e.g. XNAT) 
+#                                    to monitor ALOHA performance. An optional ALOHA_HOOK_DATA variable can be set
+# 
+#                  -h                Print help
+# 
+#                stages:
+#                  1:                Set up data and initial alignemnt
+#                  2:                Global registration
+#                  3:                Deformable registration
+#                  4:                Measure change with DBM
+# 
+# 
+#                notes:
+#                  The ALOHA_TSE image slice direction should be z. In other words, the dimension
+#                  of ALOHA_TSE image should be 400x400x30 or something like that, not 400x30x400
+#
+#  /project/hippogang_4/mdong/Longi_T12_Aim3/organize_T2_dataset/sandy_aloha/scripts/aloha_main.sh
+#      -b 002_S_1155/2017-04-24/2017-04-24_002_S_1155_T1w_trim.nii.gz                    # T1w baseline 3D gradient MRI
+#      -r 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_left_lfseg_heur_t1.nii.gz  # left hippocampus segmentation of baseline
+#      -s 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_right_lfseg_heur_t1.nii.gz # right hippocampus segmentation of baseline
+#      -c 002_S_1155/2017-04-24/2017-04-24_002_S_1155_T2w.nii.gz                         # baseline 2d focal fast spin echo
+#      -t 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_left_lfseg_heur.nii.gz     # left subfiled segmentation of baseline 2d focal fast spin echo
+#      -u 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_right_lfseg_heur.nii.gz    # right subfiled segmentation of baseline 2d focal fast spin echo
+
+
+#      -f 002_S_1155/2018-05-08/2018-05-08_002_S_1155_T1w_trim.nii.gz                    # T1w followup 3D gradient MRI
+#      -g 002_S_1155/2018-05-08/2018-05-08_002_S_1155_T2w.nii.gz                         # followup 2d focal fast spin echo
+#      -w /project/hippogang_4/mdong/Longi_T12_Aim3/organize_T2_dataset_2024/out_gaylord2/002_S_1155/2017-04-24_to_2018-05-08_aloha2024
+#
+#
+
+function getZdim {
+       local Image="$1"
+
+       c3d "$Image" -info-full | grep 'Image Dimensions' | sed -E 's/^.*,\ *([0-9]+)\]/\1/'
+}
+
+function getOrientation {
+       local Image="$1"
+
+       c3d "$Image" -info | awk '{print $NF}' 
+}
+
+function valid_orientation {
+       local Image="$1"
+       local TmpImage="/tmp/$(basename "$Image")"
+
+       local ori
+       local dim
+
+       [ ! -e "$Image" ] && return 1
+
+       zdim=$(getZdim "$Image")
+       ori=$(getOrientation "$Image")
+       if [ ! "$ori" = "RIA" ]
+       then
+           c3d "$Image" -swapdim RIA -o "$TmpImage"
+           zdim=$(c3d "$TmpImage" -info-full | grep 'Image Dimensions' | sed -E 's/^.*,\ *([0-9]+)\]/\1/')
+       fi
+
+       # *** May want to take out this number or adjust as input
+       [ "$zdim" -gt 50 ] && return 2
+
+       return 0
+}
+
+while getopts B:F:b:f:r:s:c:g:t:u:w: arg
+do
+    case "$arg" in
+       B|F|b|f|r|s|c|g|t|u|w)
+          eval "opt_${arg}='${OPTARG:=1}'"
+          ;;
+    esac
+done
+
+#if [ "$opt_B" = "$opt_F"  ]
+#then
+#    echo "${CmdName} : Baseline date, '${opt_B}', equals followup date, '${opt_F}'." 1>&2
+#    exit 1
+#fi 
+
+#  /project/hippogang_4/mdong/Longi_T12_Aim3/organize_T2_dataset/sandy_aloha/scripts/aloha_main.sh
+#      -b 002_S_1155/2017-04-24/2017-04-24_002_S_1155_T1w_trim.nii.gz                    # T1w baseline 3D gradient MRI
+#      -f 002_S_1155/2018-05-08/2018-05-08_002_S_1155_T1w_trim.nii.gz                    # T1w followup 3D gradient MRI
+#      -r 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_left_lfseg_heur_t1.nii.gz  # left hippocampus segmentation of baseline
+#      -s 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_right_lfseg_heur_t1.nii.gz # right hippocampus segmentation of baseline
+#      -c 002_S_1155/2017-04-24/2017-04-24_002_S_1155_T2w.nii.gz                         # baseline 2d focal fast spin echo
+#      -g 002_S_1155/2018-05-08/2018-05-08_002_S_1155_T2w.nii.gz                         # followup 2d focal fast spin echo
+#      -t 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_left_lfseg_heur.nii.gz     # left subfiled segmentation of baseline 2d focal fast spin echo
+#      -u 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_right_lfseg_heur.nii.gz    # right subfiled segmentation of baseline 2d focal fast spin echo
+#
+[ -z "$opt_b" ] && echo "${CmdName} : Missing -b BaselineT1wMri argument" 1>&2 && exit 2
+[ -z "$opt_f" ] && echo "${CmdName} : Missing -f FollowupT1wMri argument" 1>&2 && exit 3
+[ -z "$opt_r" ] && echo "${CmdName} : Missing -r BaselineLeftHippocampusSegmentation argument" 1>&2 && exit 4
+[ -z "$opt_s" ] && echo "${CmdName} : Missing -s BaselineRightHippocampusSegmentation argument" 1>&2 && exit 5
+[ -z "$opt_c" ] && echo "${CmdName} : Missing -c Baseline2dFocalFastSpinEcho argument" 1>&2 && exit 6
+[ -z "$opt_g" ] && echo "${CmdName} : Missing -g Followup2dFocalFastSpinEcho argument" 1>&2 && exit 7
+[ -z "$opt_t" ] && echo "${CmdName} : Missing -t BaselineLeftSegmented2dFocalFastSpinEcho argument" 1>&2 && exit 8
+[ -z "$opt_u" ] && echo "${CmdName} : Missing -u BaselineRightSegmented2dFocalFastSpinEcho argument" 1>&2 && exit 9
+
+BaselineT1wMri="$opt_b"                    # T1w followup 3D gradient MRI
+FollowupT1wMri="$opt_f"                    # T1w followup 3D gradient MRI
+BaselineLeftHippocampusSegmentation="$opt_r"  # left hippocampus segmentation of baseline
+BaselineRightHippocampusSegmentation="$opt_s"  # right hippocampus segmentation of baseline
+Baseline2dFocalFastSpinEcho="$opt_c"                         # baseline 2d focal fast spin echo
+Followup2dFocalFastSpinEcho="$opt_g"                         # followup 2d focal fast spin echo
+BaselineLeftSegmented2dFocalFastSpinEcho="$opt_t"     # left subfiled segmentation of baseline 2d focal fast spin echo
+BaselineRightSegmented2dFocalFastSpinEcho="$opt_u"    # right subfiled segmentation of baseline 2d focal fast spin echo
+
+#
+# *** we check the baseline and followup T2w but what about the T1s?
+#
+valid_orientation "$Baseline2dFocalFastSpinEcho" || exit 10
+valid_orientation "$Followup2dFocalFastSpinEcho" || exit 11

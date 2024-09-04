@@ -1,0 +1,35 @@
+#!/bin/bash
+
+function sys {
+	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
+	[ -z "$opt_n" ] && "$@"
+}
+
+while getopts d:nv arg
+do
+	case "$arg" in
+		d|n|v)
+			eval "opt_${arg}='${OPTARG:=1}'"
+			;;
+	esac
+done
+
+DownloadDir="$opt_d"
+
+shift $(("$OPTIND" - 1))
+
+SubjectJsonFile="$1"
+
+for IdPath in $(jq -r '..|select(.FwFilePath != null)? | [.FileUid,.FwFilePath]|@csv' "$SubjectJsonFile" )
+do
+    FileId=$(echo "$IdPath" | csvcut -c 1)
+    FwFilePath=$(echo "$IdPath" | csvcut -c 2)
+
+    BaseName=$(basename "$FwFilePath")
+    FwRelativeDir=$(dirname "$FwFilePath")
+    DirName="${DownloadDir}/${FwRelativeDir}"
+
+    [ -e "$DirName" ] || sys mkdir -p "$DirName"
+    sys fwget -1 -f --download --download-dir "$DirName" "$FileId"
+done
+
