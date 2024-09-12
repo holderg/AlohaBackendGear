@@ -1,0 +1,177 @@
+#!/bin/bash
+
+#
+# Probably want the SubjectJsonFile path
+#
+
+CmdName=$(basename "$0")
+Syntax="${CmdName} {-B BaselineDate} {-F FollowupDate} {-f FwFilePathJsonFile} {-i FollowupIndex} {-d FollowupDir}[-n][-v] SubjectAlohaJsonFile"
+
+function sys {
+	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
+	[ -n "$opt_n" ] || "$@"
+}
+
+while getopts B:d:F:f:i:nv arg
+do
+	case "$arg" in
+	     B|d|F|f|i|n|v)
+		eval "opt_${arg}='${OPTARG:=1}'"
+		;;
+	esac
+done
+
+shift $(("$OPTIND" - 1))
+
+if [ -z "$opt_d" ]
+then
+	echo "${CmdName} : missing -d FollowupDir" 1>&2
+	echo "$Syntax" 1>&2
+	exit 1
+fi
+
+FollowupDir="$opt_d"
+FollowupUploadDir="${FollowupDir}/Uploads"
+
+if [ -z "$opt_i" ]
+then
+	echo "${CmdName} : missing -i FollowupIndex" 1>&2
+	echo "$Syntax" 1>&2
+	exit 2
+fi
+
+FollowupIndex="$opt_i"
+
+if [ -z "$opt_B " ]
+then
+	echo "${CmdName} : missing -B BaselineDate" 1>&2
+	echo "$Syntax" 1>&2
+	exit 2
+fi
+BaselineDate=$(date -d "$opt_B" '+%Y-%m-%d')
+
+if [ -z "$opt_F " ]
+then
+	echo "${CmdName} : missing -F FollowupDate" 1>&2
+	echo "$Syntax" 1>&2
+	exit 2
+fi
+FollowupDate=$(date -d "$opt_F" '+%Y-%m-%d')
+SubjectAlohaJsonFile="$1"
+
+SubjectId=$(jq -r '.SubjectId' "$SubjectAlohaJsonFile")
+SubjectLabel=$(jq -r '.SubjectLabel' "$SubjectAlohaJsonFile")
+
+FollowupJson=$(jq ".Followup[$FollowupIndex].FollowupT2" "$SubjectAlohaJsonFile")
+FollowupSessionId=$(jq -r -n --argjson FollowupJson "$FollowupJson" "($FollowupJson).SessionId")
+
+AlohaOutputJson='{
+  "FileNameTemplate": "aloha-%s-%s-%s-%s",
+  "FilenameSources": [ ".SubjectLabel", ".FromDate", ".ToDate", ".FileName" ],
+  "Metadata": "???",
+  "FollowupOutputFiles": [
+         {
+	      "AlohaFileName": "deformable/bltrim_left_to_hw.nii.gz"
+	    , "FwFileName": "BaselineT2LeftTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Left"]
+         }
+       , {
+	      "AlohaFileName": "deformable/bltrim_right_to_hw.nii.gz"
+	    , "FwFileName": "BaselineT2RightTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Right" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/futrim_om_left_to_hw.nii.gz"
+	    , "FwFileName": "FollowupT2LeftTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Left" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/futrim_om_right_to_hw.nii.gz"
+	    , "FwFileName": "FollowupT2RightTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Right" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/blmptrim_left_to_hw.nii.gz"
+	    , "FwFileName": "BaselineT1LeftTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Left" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/blmptrim_right_to_hw.nii.gz"
+	    , "FwFileName": "BaselineT1RightTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Right" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/fumptrim_om_left_to_hw.nii.gz"
+	    , "FwFileName": "FollowupT1LeftTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Left" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/fumptrim_om_right_to_hw.nii.gz"
+	    , "FwFileName": "FollowupT1RightTrimmedHalfwaySpace"
+	    , "Tags": [ "Aloha", "Output", "Right" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/mp_antsreg3d_left1Warp.nii.gz"
+	    , "FwFileName": "T1LeftWarpField"
+	    , "Tags": [ "Aloha", "Output", "Left" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/mp_antsreg3d_right1Warp.nii.gz"
+	    , "FwFileName": "T1RightWarpField"
+	    , "Tags": [ "Aloha", "Output", "Right" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/tse_antsreg3d_left1Warp.nii.gz"
+	    , "FwFileName": "T2LeftWarpField"
+	    , "Tags": [ "Aloha", "Output", "Left" ]
+         }
+       , {
+	      "AlohaFileName": "deformable/tse_antsreg3d_right1Warp.nii.gz"
+	    , "FwFileName": "T2RightWarpField"
+	    , "Tags": [ "Aloha", "Output", "Right" ]
+         }
+       , {
+	      "AlohaFileName": "results/volumes_left.txt"
+	    , "FwFileName": "LeftVolumes"
+	    , "Tags": [ "Aloha", "Output", "Left" ]
+         }
+       , {
+	      "AlohaFileName": "results/volumes_right.txt"
+	    , "FwFileName": "RightVolumes"
+	    , "Tags": [ "Aloha", "Output", "Right" ]
+         }
+  ]
+}'
+
+FollowupUploadFilesRegEx=$(echo $(echo "$AlohaOutputJson" | jq -r '.FollowupOutputFiles[].AlohaFileName') | sed 's/ /)|(/g; s/^.*$/(&)/' )
+
+echo "$AlohaOutputJson" > /tmp/json
+
+[ -e "$FollowupUploadDir" ] || mkdir "$FollowupUploadDir"
+
+FileNameTemplate=$(echo "$AlohaOutputJson" | jq -r '.FileNameTemplate')
+FilenameSources=$(echo "$AlohaOutputJson" | jq -r '.FilenameSources[]')
+
+while read f
+do
+	Basename=$(basename "$f")
+
+	FwFileJson=$(echo "$AlohaOutputJson" | jq -r --argjson AlohaFileName "\"$Basename\"" '.. | select(.AlohaFileName | test($AlohaFileName)) ?')
+	FwFileName=$(echo "$FwFileJson" | jq -r '.FwFileName')
+	Tags=$(echo "$FwFileJson" | jq -r '.Tags|@csv' | sed 's/"//g')
+	FwTemplatedFileName=$(printf "$FileNameTemplate" "$SubjectLabel" "$FollowupDate" "$BaselineDate" "$FwFileName")
+	FwUploadFilename="${FollowupUploadDir}/${FwTemplatedFileName}"
+	sys cp "$f" "$FwUploadFilename"
+	sys fwuploadfile -t "$Tags" -p "$FollowupSessionId" "$FwUploadFilename" 
+	
+done < <(find "$FollowupDir" -type f | grep -E "${FollowupUploadFilesRegEx}$" )
+
+
+# naming: Want a name template: "
+# and sources [ .followup.timestamp, .baseline.timestamp, subject, session, filename ]
+#
+# Copy file to new name
+# upload renamed file to FollowupT2 and tag it
+# 
+
+exit 0

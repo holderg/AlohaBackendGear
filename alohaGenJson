@@ -1,0 +1,241 @@
+#!/bin/bash
+
+CmdName=$(basename "$0")
+
+set -e
+set -o pipefail
+
+Syntax="${CmdName} [-d TmpDir][-n] {-f Id2FwFilePathJsonFile} {-i Id2LabelsJsonFile} [-v] {SubjectUid}"
+
+function sys {
+        [ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
+        [ -z "$opt_n" ] && "$@"
+}
+
+function mkAlohaStanza {
+	 local AlohaFlag="$1"
+	 local AlohaArg="$2"
+	 local FileId="$3"
+	 local FwFilePath="$4"
+	 local Timestamp="$5"
+	 local SessionId="$6"
+
+	 echo "{ \"$AlohaFlag\": {
+	        \"AlohaArg\":	\"$AlohaArg\"
+	      , \"FileId\":	\"$FileId\"
+	      , \"FwFilePath\":	\"$FwFilePath\"
+	      , \"Timestamp\":	\"$Timestamp\"
+	      , \"SessionId\":	\"$SessionId\"
+	 }}" | jq .
+}
+
+function json2Stanza {
+	 local FileId="$1"
+	 local Dir="$2"
+	 local Id2LabelsFile="$3"
+	 local Id2FileLabelsFile="$4"
+	 local AlohaArg="$5"
+	 local AlohaFlag="$6"
+	 local Timestamp="$7"
+	 local SessionId="$8"
+		
+	 local FileName=$(echo "\"$FileId\"" | jq -r --slurpfile Id2Labels "$Id2LabelsJsonFile" '$Id2Labels[][.]')
+	 local FwFilePath=$(echo "\"$FileId\"" | jq -r --slurpfile Id2FwFilePath "$Id2FwFilePathJsonFile" '$Id2FwFilePath[][.]')
+
+	 mkAlohaStanza "$AlohaArg" "$AlohaFlag" "$FileId" "$FwFilePath" "$Timestamp" "$SessionId"
+}
+
+function getBaselineStanza {
+	 local Dir="$1"
+	 local SubjectJsonFile="$2"
+	 local Id2LabelsJsonFile="$3"
+	 local Id2FwFilePathJsonFile="$4"
+	 local BaselineSessionId="$5"
+
+	 local BaselineTrimmedT1FileSelectionJq='.acquisitions[].files[] | select((.tags | (any(. == "Trimmed") and any(. == "AlohaInput"))) and (.classification["Measurement"] | any(. == "T1")) )'
+	 local FileJson=$( id2Json "$BaselineSessionId" "$SubjectJsonFile" | jq "$BaselineTrimmedT1FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find BaselineTrimmedT1FileSelectionJq '$BaselineTrimmedT1FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 local FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 local AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 local AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+ 	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineTrimmedT1" "-b" "$AcquisitionTimestamp" "$BaselineSessionId"
+
+	 local BaselineLeftSegmentedT1FileSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T1") and any(. == "Segmentation") and any(. == "Left") ) )' 
+	 FileJson=$( id2Json "$BaselineSessionId" "$SubjectJsonFile" | jq "$BaselineLeftSegmentedT1FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find BaselineLeftSegmentedT1FileSelectionJq '$BaselineLeftSegmentedT1FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+
+	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineLeftSegmentedT1" "-r" "$AcquisitionTimestamp" "$BaselineSessionId"
+
+	 local BaselineRightSegmentedT1FileSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T1") and any(. == "Segmentation") and any(. == "Right") ) )'
+	 FileJson=$( id2Json "$BaselineSessionId" "$SubjectJsonFile" | jq "$BaselineRightSegmentedT1FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find BaselineRightSegmentedT1FileSelectionJq '$BaselineRightSegmentedT1FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+
+	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineRightSegmentedT1" "-s" "$AcquisitionTimestamp" "$BaselineSessionId"
+
+	 local BaselineLeftSegmentedT2FileSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T2") and any(. == "Segmentation") and any(. == "Left") ) )'
+	 FileJson=$( id2Json "$BaselineSessionId" "$SubjectJsonFile" | jq "$BaselineLeftSegmentedT2FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find BaselineLeftSegmentedT2FileSelectionJq '$BaselineLeftSegmentedT2FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+
+	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineLeftSegmentedT2" "-t" "$AcquisitionTimestamp" "$BaselineSessionId"
+
+	 local BaselineRightSegmentedT2FileSelectionJq='.acquisitions[].files[] | select( .tags | ( any(. == "T2") and any(. == "Segmentation") and any(. == "Right") ) )'
+	 FileJson=$( id2Json "$BaselineSessionId" "$SubjectJsonFile" | jq "$BaselineRightSegmentedT2FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find BaselineRightSegmentedT2FileSelectionJq '$BaselineRightSegmentedT2FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+
+	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineRightSegmentedT2" "-u" "$AcquisitionTimestamp" "$BaselineSessionId"
+
+	 local BaselineT2FileSelectionJq='.acquisitions[].files[] | select( (.tags | any(. == "AlohaInput")) and (.classification["Measurement"] | any(. == "T2")) )'
+	 FileJson=$( id2Json "$BaselineSessionId" "$SubjectJsonFile" | jq "$BaselineT2FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find BaselineT2FileSelectionJq '$BaselineT2FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+
+	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "BaselineT2" "-c" "$AcquisitionTimestamp" "$BaselineSessionId"
+		
+}
+
+function getFollowupStanza {
+	 local Dir="$1"
+	 local SubjectJsonFile="$2"
+	 local Id2LabelJsonFile="$3"
+	 local Id2FwFilePathJsonFile="$4"
+	 local FollowupSessionId="$5"
+
+	 local FollowupTrimmedT1FileSelectionJq='.acquisitions[].files[] | select((.tags | (any(. == "Trimmed") and any(. == "AlohaInput"))) and (.classification["Measurement"] | any(. == "T1")) )'
+	 local FileJson=$( id2Json "$FollowupSessionId" "$SubjectJsonFile" | jq "$FollowupTrimmedT1FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find FollowupTrimmedT1FileSelectionJq '$FollowupTrimmedT1FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 local FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 local AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 local AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "FollowupTrimmedT1" "-f" "$AcquisitionTimestamp" "$FollowupSessionId"
+
+	 local FollowupT2FileSelectionJq='.acquisitions[].files[] | select( (.tags | any(. == "AlohaInput")) and (.classification["Measurement"] | any(. == "T2")) )'
+	 FileJson=$( id2Json "$FollowupSessionId" "$SubjectJsonFile" | jq "$FollowupT2FileSelectionJq" )
+	 if [ -z "$FileJson" ]
+	 then
+		 echo "${CmdName} : Could not find FollowupT2FileSelectionJq '$FollowupT2FileSelectionJq'" 1>&2
+		 return 1
+	 fi
+	 FileId=$(echo "$FileJson" | jq -r '.file_id')
+	 AcquisitionId=$(echo "$FileJson" | jq -r '.parents.acquisition')
+	 AcquisitionTimestamp=$(jq -r '..|select(._id == "'"$AcquisitionId"'")? | .timestamp' "$SubjectJsonFile")
+	 json2Stanza "$FileId" "$Dir" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "FollowupT2" "-g" "$AcquisitionTimestamp" "$FollowupSessionId"
+}
+
+function id2Json {
+	 local Id="$1"
+	 local JsonFile="$2"
+
+	 jq "..|select(._id == \"$Id\")?" "$JsonFile"
+}
+
+function mkContainerDirName {
+	 local Id="$1"
+	 local JsonFile="$2"
+
+	 id2Json "$Id" "$JsonFile" | jq -r '.label + "-" + ._id' | sort -u
+}
+
+while getopts d:f:i:nv arg
+do
+	case "$arg" in
+	     d|f|i|n|v)
+		eval "opt_${arg}='${OPTARG:=1}'"
+		;;
+	esac
+done
+
+shift $(( "$OPTIND" - 1))
+
+if [ -n "$opt_d" ]
+then
+	TmpDir="$opt_d"
+else
+	TmpDir=$(mktemp -d "${TMPDIR:=/tmp}/${CmdName}-XXXXXXX")
+fi
+
+Id2LabelsJsonFile="$opt_i"
+Id2FwFilePathJsonFile="$opt_f"
+
+SubjectJsonFile="$1"
+SubjectId=$(jq -r '._id' "$SubjectJsonFile")
+SubjectLabel=$(jq -r '.label' "$SubjectJsonFile")
+
+
+	SubjectAlohaJson=$(
+            #
+            # Get all the baseline Uids.  Make sure there is only one baseline session
+            #
+            BaselineSessionId=( $(jq -r '..|select(.tags|any(. == "Baseline"))?' "$SubjectJsonFile" | jq -r ._id) )
+            if [ "${#BaselineSessionId[@]}" != 1 ]
+            then
+                echo "${CmdName} : '${#BaselineSessionId[@]}' baseline sessions found.  Not just one. Bailing" 1>&2
+                exit 1
+            fi
+        
+            BaselineDir="$TmpDir"/$(mkContainerDirName "$BaselineSessionId" "$SubjectJsonFile")
+            [ -e "$BaselineDir" ] || mkdir -p "$BaselineDir" 
+        
+	    getBaselineStanza "$BaselineDir" "$SubjectJsonFile" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "$BaselineSessionId" | jq -s '{"Baseline": (. | add)}'
+	    ExitCode="${PIPESTATUS[0]}"
+	    if [ "$ExitCode" != 0 ]
+	    then
+		    echo "${CmdName} : getBaselineStanza failed : ExitCode = '$ExitCode'" 1>&2
+		    exit "$ExitCode"
+	    fi
+        
+            FollowupSessionIds=( $(jq -r '..|select(.tags|any(. == "Followup"))?' "$SubjectJsonFile" | jq -r ._id) )
+            for FollowupSessionId in "${FollowupSessionIds[@]}"
+            do
+                FollowupDir="$TmpDir"/$(mkContainerDirName "$FollowupSessionId" "$SubjectJsonFile")        
+                getFollowupStanza "$FollowupDir" "$SubjectJsonFile" "$Id2LabelsJsonFile" "$Id2FwFilePathJsonFile" "$FollowupSessionId" | jq -s '. | add'
+            done | jq -s '{"Followup": .}'
+	)
+	if [ "$?" -ne 0 ]
+	then
+		echo "${CmdName} : Failed to generate SubjectAlohaJson" 1>&2
+		exit "$ExitCode"
+	fi
+	echo "$SubjectAlohaJson" | jq -s 'add | . + { "SubjectId": "'"$SubjectId"'", "SubjectLabel": "'"$SubjectLabel"'", "AlohaDir": "'"$TmpDir"'"}'
+

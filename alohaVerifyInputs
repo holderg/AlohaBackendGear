@@ -101,20 +101,14 @@ function valid_orientation {
        return 0
 }
 
-while getopts B:F:b:f:r:s:c:g:t:u:w: arg
+while getopts b:f:r:s:c:g:t:u:w: arg
 do
     case "$arg" in
-       B|F|b|f|r|s|c|g|t|u|w)
+       b|f|r|s|c|g|t|u|w)
           eval "opt_${arg}='${OPTARG:=1}'"
           ;;
     esac
 done
-
-#if [ "$opt_B" = "$opt_F"  ]
-#then
-#    echo "${CmdName} : Baseline date, '${opt_B}', equals followup date, '${opt_F}'." 1>&2
-#    exit 1
-#fi 
 
 #  /project/hippogang_4/mdong/Longi_T12_Aim3/organize_T2_dataset/sandy_aloha/scripts/aloha_main.sh
 #      -b 002_S_1155/2017-04-24/2017-04-24_002_S_1155_T1w_trim.nii.gz                    # T1w baseline 3D gradient MRI

@@ -1,10 +1,11 @@
 #!/bin/bash
 
 CmdName=$(basename "$0")
+Syntax="${CmdName} [-n][-u][-v][-z StageSpec]"
 
 function sys {
 	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
-	[ -z "$opt_n" ] && "$@"
+	[ -n "$opt_n" ] || "$@"
 }
 
 #
@@ -85,21 +86,10 @@ function mkBaselineHippocampusSegmentation {
         fi
 }
 
-#  /project/hippogang_4/mdong/Longi_T12_Aim3/organize_T2_dataset/sandy_aloha/scripts/aloha_main.sh
-#      -b 002_S_1155/2017-04-24/2017-04-24_002_S_1155_T1w_trim.nii.gz                    # T1w baseline 3D gradient MRI
-#      -f 002_S_1155/2018-05-08/2018-05-08_002_S_1155_T1w_trim.nii.gz                    # T1w followup 3D gradient MRI
-#      -r 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_left_lfseg_heur_t1.nii.gz  # left hippocampus segmentation of baseline
-#      -s 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_right_lfseg_heur_t1.nii.gz # right hippocampus segmentation of baseline
-#      -c 002_S_1155/2017-04-24/2017-04-24_002_S_1155_T2w.nii.gz                         # baseline 2d focal fast spin echo
-#      -g 002_S_1155/2017-04-24/2018-05-08_002_S_1155_T2w.nii.gz                         # followup 2d focal fast spin echo
-#      -t 002_S_1155/2017-04-24/sfsegnibtend/final/002_S_1155_left_lfseg_heur.nii.gz     # left subfiled segmentation of baseline 2d focal fast spin echo
-#      -u 002_S_1155/2018-05-08/sfsegnibtend/final/002_S_1155_right_lfseg_heur.nii.gz    # right subfiled segmentation of baseline 2d focal fast spin echo
-#      -w /project/hippogang_4/mdong/Longi_T12_Aim3/organize_T2_dataset_2024/out_gaylord2/002_S_1155/2017-04-24_to_2018-05-08_aloha2024
-#
-while getopts nvz: arg
+while getopts f:i:nuvz: arg
 do
 	case "$arg" in
-		n|v|z)
+		f|i|n|u|v|z)
 			eval "opt_${arg}='${OPTARG:=1}'"
 			;;
 	esac
@@ -109,56 +99,68 @@ shift $(("$OPTIND" - 1))
 
 
 	 InputDir=/flywheel/v0/input
-         WDIR=/tmp/aloha
-         [ -d "$WDIR" ] || mkdir -p "$WDIR"
+         TmpDir=/tmp/aloha
+         [ -d "$TmpDir" ] || mkdir -p "$WDIR"
 
          SubjectId=66cf1987d024e261be4335f7	# holder/AlohaTesting 
-	 TmpSubjectDir="${WDIR}/${SubjectId}"
+	 TmpSubjectDir="${TmpDir}/${SubjectId}"
 	 [ -d "$TmpSubjectDir" ] || mkdir -p "$TmpSubjectDir"
-         TmpSubjectJsonFile="$TmpSubjectDir"/SubjectAloha.json
+         TmpFwSubjectJsonFile="$TmpSubjectDir"/FwSubject.json
 
-         sys fwGenAlohaJson -v -d "$TmpSubjectDir" "$SubjectId" > "$TmpSubjectJsonFile"
+	 [ -z "$opt_u" ] || (sys fwget -1 -raG "$SubjectId" > "$TmpFwSubjectJsonFile")
+	 SubjectLabel=$(jq -r '.label' "$TmpFwSubjectJsonFile")
 
-	 SubjectLabel=$(jq -r -n --slurpfile Id2Labels "${TmpSubjectDir}/Id2Labels.json" '$Id2Labels[]["'"$SubjectId"'"]')
-	 SubjectDir="${WDIR}/${SubjectLabel}-${SubjectId}"
-	 SubjectJsonFile="${SubjectDir}/SubjectAloha.json"
-	 if [ -e "$SubjectJsonFile" ]
+	 SubjectDir="${TmpDir}/${SubjectLabel}-${SubjectId}"
+         FwSubjectJsonFile="$SubjectDir"/FwSubject.json
+	 if [ -e "$SubjectDir" ]
 	 then
-		 sys mv "$TmpSubjectJsonFile" "$SubjectJsonFile"
+		 cp "$TmpFwSubjectJsonFile" "$FwSubjectJsonFile"
 	 else
-		 sys mv "$TmpSubjectDir" "$SubjectDir"
+		 mv "$TmpSubjectDir" "$SubjectDir"
 	 fi
 
-         sys fwDownloadAlohaFiles -v -d "$SubjectDir" "$SubjectJsonFile"
+	 SubjectAlohaJsonFile="${SubjectDir}/SubjectAloha.json"
+	 Id2LabelsJsonFile="${SubjectDir}/Id2Labels.json"
+         Id2FwFilePathJsonFile="${SubjectDir}/Id2FwFilePath.json"
 
-         BaselineT1wMri="${InputDir}/2017-04-24_002_S_1155_T1w_trim.nii.gz"                    # T1w baseline 3D gradient MRI
-	 BaselineT1wMri="${SubjectDir}/"$(jq -r '.Baseline.BaselineTrimmedT1.FwFilePath' "$SubjectJsonFile")
+         fwContainer2Id2Labels "$FwSubjectJsonFile" > "$Id2LabelsJsonFile"
+         fwContainer2Id2Labels -n -f "$Id2LabelsJsonFile" "$FwSubjectJsonFile" > "$Id2FwFilePathJsonFile"
 
-         BaselineLeftHippocampusSegmentation="${InputDir}/002_S_1155_left_lfseg_heur_t1.nii.gz"  # left hippocampus segmentation of baseline
-         BaselineLeftHippocampusSegmentation="${SubjectDir}/"$(jq -r '.Baseline.BaselineLeftSegmentedT1.FwFilePath' "$SubjectJsonFile") # left hippocampus segmentation of baseline
-         BaselineRightHippocampusSegmentation="${InputDir}/002_S_1155_right_lfseg_heur_t1.nii.gz"  # right hippocampus segmentation of baseline
-         BaselineRightHippocampusSegmentation="${SubjectDir}/"$(jq -r '.Baseline.BaselineRightSegmentedT1.FwFilePath' "$SubjectJsonFile") # right hippocampus segmentation of baseline
+         sys alohaGenJson -v -d "$SubjectDir" -f "$Id2FwFilePathJsonFile" -i "$Id2LabelsJsonFile" "$FwSubjectJsonFile" > "$SubjectAlohaJsonFile"
+	 ExitCode="$?"
+	 if [ "$ExitCode" -ne 0 ]
+	 then
+	     echo "${CmdName} : alohaGenJson exited with '$ExitCode'" 1>&2
+	     exit 1
+	 fi
 
-         Baseline2dFocalFastSpinEcho="${InputDir}/2017-04-24_002_S_1155_T2w.nii.gz"                         # baseline 2d focal fast spin echo
-	 Baseline2dFocalFastSpinEcho="${SubjectDir}/"$(jq -r '.Baseline.BaselineT2.FwFilePath' "$SubjectJsonFile" )                         # baseline 2d focal fast spin echo
+	 [ -z "$opt_u" ] || (sys alohaDownloadInputFiles -v -d "$SubjectDir" "$SubjectAlohaJsonFile") && ExitCode="$?"
+	 if [ "$ExitCode" -ne 0 ]
+	 then
+	     echo "${CmdName} : alohaDownloadInputFiles exited with '$ExitCode'" 1>&2
+	     exit 2
+	 fi
 
-         BaselineLeftSegmented2dFocalFastSpinEcho="${InputDir}/002_S_1155_left_lfseg_heur.nii.gz"     # left subfiled segmentation of baseline 2d focal fast spin echo
-	 BaselineLeftSegmented2dFocalFastSpinEcho="${SubjectDir}/"$(jq -r '.Baseline.BaselineLeftSegmentedT2.FwFilePath' "$SubjectJsonFile" )   # left subfiled segmentation of baseline 2d focal fast spin echo
+	 BaselineT1wMri="${SubjectDir}/"$(jq -r '.Baseline.BaselineTrimmedT1.FwFilePath' "$SubjectAlohaJsonFile")
+	 BaselineDate=$(jq -r '.Baseline.BaselineTrimmedT1.Timestamp' "$SubjectAlohaJsonFile" )
+         BaselineLeftHippocampusSegmentation="${SubjectDir}/"$(jq -r '.Baseline.BaselineLeftSegmentedT1.FwFilePath' "$SubjectAlohaJsonFile") # left hippocampus segmentation of baseline
+         BaselineRightHippocampusSegmentation="${SubjectDir}/"$(jq -r '.Baseline.BaselineRightSegmentedT1.FwFilePath' "$SubjectAlohaJsonFile") # right hippocampus segmentation of baseline
+	 Baseline2dFocalFastSpinEcho="${SubjectDir}/"$(jq -r '.Baseline.BaselineT2.FwFilePath' "$SubjectAlohaJsonFile" )                         # baseline 2d focal fast spin echo
+	 BaselineLeftSegmented2dFocalFastSpinEcho="${SubjectDir}/"$(jq -r '.Baseline.BaselineLeftSegmentedT2.FwFilePath' "$SubjectAlohaJsonFile" )   # left subfiled segmentation of baseline 2d focal fast spin echo
+	 BaselineRightSegmented2dFocalFastSpinEcho="${SubjectDir}/"$(jq -r '.Baseline.BaselineRightSegmentedT2.FwFilePath' "$SubjectAlohaJsonFile" )   # right subfiled segmentation of baseline 2d focal fast spin echo
 
-         BaselineRightSegmented2dFocalFastSpinEcho="${InputDir}/002_S_1155_right_lfseg_heur.nii.gz"    # right subfiled segmentation of baseline 2d focal fast spin echo
-	 BaselineRightSegmented2dFocalFastSpinEcho="${SubjectDir}/"$(jq -r '.Baseline.BaselineRightSegmentedT2.FwFilePath' "$SubjectJsonFile" )   # right subfiled segmentation of baseline 2d focal fast spin echo
-
-	 for FollowupIndex in $(jq '.Followup | keys[]' "$SubjectJsonFile")
+	 for FollowupIndex in $(jq '.Followup | keys[]' "$SubjectAlohaJsonFile")
 	 do
-		FollowupJson=$(jq -r '.Followup['"$FollowupIndex"']' "$SubjectJsonFile")
+		FollowupJson=$(jq -r '.Followup['"$FollowupIndex"']' "$SubjectAlohaJsonFile")
 
-         	FollowupT1wMri="${InputDir}/2018-05-08_002_S_1155_T1w_trim.nii.gz"                    # T1w followup 3D gradient MRI
 		FollowupT1wMri="${SubjectDir}/"$(echo "$FollowupJson" | jq -r '.FollowupTrimmedT1.FwFilePath')
+		FollowupDate=$(echo "$FollowupJson" | jq -r '.FollowupTrimmedT1.Timestamp')
 
 	 	Followup2dFocalFastSpinEcho="${SubjectDir}/"$(echo "$FollowupJson" | jq -r '.FollowupT2.FwFilePath' )                         # followup 2d focal fast spin echo
+	 	FollowupT2SessionId=$(echo "$FollowupJson" | jq -r '.FollowupT2.SessionId' )                         # followup 2d focal fast spin echo
 		FollowupWorkDir=$(dirname "$Followup2dFocalFastSpinEcho")
 
-		 AlohaArgs=(
+		AlohaArgs=(
 	                      -b "$BaselineT1wMri"
 	                      -r "$BaselineLeftHippocampusSegmentation"
 	                      -s "$BaselineRightHippocampusSegmentation"
@@ -171,20 +173,32 @@ shift $(("$OPTIND" - 1))
 	                   )
                 [ -n "$opt_z" ] && AlohaArg+=( -z "$opt_z" )
 	
-	
-	         if sys verifyAlohaInputs "${AlohaArgs[@]}"
-	         then
-set -x -e
-	              [ -e "$BaselineLeftHippocampusSegmentation" ] || sys mkBaselineHippocampusSegmentation "$BaselineT1wMri"	\
-		      		"$BaselineLeftSegmented2dFocalFastSpinEcho" 							\
-				"$BaselineLeftHippocampusSegmentation"
-	              [ -e "$BaselineRightHippocampusSegmentation" ] || sys mkBaselineHippocampusSegmentation "$BaselineT1wMri"	\
-			        "$BaselineRightSegmented2dFocalFastSpinEcho"	\
-				"$BaselineRightHippocampusSegmentation"
-	 
-	    	      sys aloha_main.sh "${AlohaArgs[@]}"
-	         else
-	              echo "${CmdName} : input validation failed verifyAlohaInputs ${AlohaArgs[@]}" 1>&2
-	              exit 1
-	         fi
+	        if sys alohaVerifyInputs "${AlohaArgs[@]}"
+	        then
+# 
+# *** We should not be creating files input files in this gear.  
+#
+#	              [ -e "$BaselineLeftHippocampusSegmentation" ] || sys mkBaselineHippocampusSegmentation "$BaselineT1wMri"	\
+#		      		"$BaselineLeftSegmented2dFocalFastSpinEcho" 							\
+#				"$BaselineLeftHippocampusSegmentation"
+#	              [ -e "$BaselineRightHippocampusSegmentation" ] || sys mkBaselineHippocampusSegmentation "$BaselineT1wMri"	\
+#			        "$BaselineRightSegmented2dFocalFastSpinEcho"	\
+#				"$BaselineRightHippocampusSegmentation"
+#	 
+	    	      [ -z "$opt_u" ] || sys aloha_main.sh "${AlohaArgs[@]}"
+		      ExitCode="$?"
+		      if [ "$ExitCode" != 0 ]
+		      then
+			  echo "${CmdName} : input validation failed verifyAlohaInputs ${AlohaArgs[@]}" 1>&2
+			  exit 4
+	              fi
+		      
+		      sys alohaUploadAndTagOutputs -B "$BaselineDate" -F "$FollowupDate" -i "$FollowupIndex" -d "$FollowupWorkDir" "$SubjectAlohaJsonFile"
+		      ExitCode="$?"
+		      if [ "$ExitCode" -ne 0 ]
+		      then
+			  echo "${CmdName} : alohaUploadAndTagOutputs files with '$ExitCode'" 1>&2
+			  exit 5
+		      fi
+		 fi
 	 done

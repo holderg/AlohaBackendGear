@@ -1,5 +1,8 @@
 #!/bin/bash
 
+CmdName=$(basename "$0")
+Syntax="${CmdName} [-d WorkingDir][-n][-v]"
+
 function sys {
 	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
 	[ -z "$opt_n" ] && "$@"
@@ -20,7 +23,7 @@ shift $(("$OPTIND" - 1))
 
 SubjectJsonFile="$1"
 
-for IdPath in $(jq -r '..|select(.FwFilePath != null)? | [.FileUid,.FwFilePath]|@csv' "$SubjectJsonFile" )
+for IdPath in $(jq -r '..|select(.FwFilePath != null)? | [.FileId,.FwFilePath]|@csv' "$SubjectJsonFile" )
 do
     FileId=$(echo "$IdPath" | csvcut -c 1)
     FwFilePath=$(echo "$IdPath" | csvcut -c 2)
@@ -31,5 +34,11 @@ do
 
     [ -e "$DirName" ] || sys mkdir -p "$DirName"
     sys fwget -1 -f --download --download-dir "$DirName" "$FileId"
+    ExitCode="$?"
+    if [ "$ExitCode" != 0 ]
+    then
+	echo "${CmdName} : could not download file '$FileId' into directory '$DirName'" 1>&2
+	exit 1
+    fi
 done
 

@@ -15,7 +15,7 @@ RUN cd ${FLYWHEEL}; git clone https://github.com/brainsciencecenter/flywheel.git
 
 COPY run requirements.txt ${FLYWHEEL}/
 
-COPY fwGenAlohaJson fwDownloadAlohaFiles verifyAlohaInputs /usr/local/bin/
+COPY alohaGenJson alohaDownloadInputFiles alohaVerifyInputs alohaUploadAndTagOutputs /usr/local/bin/
 
 RUN pip install -r requirements.txt
 
