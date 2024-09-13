@@ -13,7 +13,7 @@ RUN apt full-upgrade -y
 RUN apt install -y libopenblas-dev bc libxt6 jq csvkit
 RUN cd ${FLYWHEEL}; git clone https://github.com/brainsciencecenter/flywheel.git; cd flywheel; git pull
 
-COPY run requirements.txt ${FLYWHEEL}/
+COPY run requirements.txt config.test.json ${FLYWHEEL}/
 
 COPY alohaGenJson alohaDownloadInputFiles alohaVerifyInputs alohaUploadAndTagOutputs /usr/local/bin/
 

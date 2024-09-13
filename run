@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CmdName=$(basename "$0")
-Syntax="${CmdName} [-n][-u][-v][-z StageSpec]"
+Syntax="${CmdName} [-c config][-f][-n][-s SessionId][-u][-v][-z StageSpec]"
 
 function sys {
 	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
@@ -86,10 +86,10 @@ function mkBaselineHippocampusSegmentation {
         fi
 }
 
-while getopts f:i:nuvz: arg
+while getopts c:f:i:ns:uvz: arg
 do
 	case "$arg" in
-		f|i|n|u|v|z)
+		c|f|i|n|s|u|v|z)
 			eval "opt_${arg}='${OPTARG:=1}'"
 			;;
 	esac
@@ -97,12 +97,32 @@ done
 
 shift $(("$OPTIND" - 1))
 
+if [ -n "$opt_c" ]
+then
+	ConfigJsonFile="$opt_c"
+else
+	ConfigJsonFile="${FLYWHEEL}/config.json"
+fi
 
 	 InputDir=/flywheel/v0/input
          TmpDir=/tmp/aloha
-         [ -d "$TmpDir" ] || mkdir -p "$WDIR"
+         [ -d "$TmpDir" ] || mkdir -p "$TmpDir"
 
-         SubjectId=66cf1987d024e261be4335f7	# holder/AlohaTesting 
+	AcquisitionId=$(jq -r '.destination.id' "$ConfigJsonFile" )
+	if [ -z "$AcquisitionId" ]
+	then
+		echo "${CmdName} : can not find acquisition id in '$ConfigJsonFile'" 1>&2
+		exit 1
+	fi
+	SubjectId=$(fwget -1 "$AcquisitionId" | jq -r '.parents.subject' | fwget -1 | jq -r '._id')
+	if [ -z "$SubjectId" ]
+        then
+                echo "${CmdName} : can not find SubjectId from '$AcquisitionId'" 1>&2
+                exit 2
+        fi
+
+	echo "SubjectId = '$SubjectId'"
+
 	 TmpSubjectDir="${TmpDir}/${SubjectId}"
 	 [ -d "$TmpSubjectDir" ] || mkdir -p "$TmpSubjectDir"
          TmpFwSubjectJsonFile="$TmpSubjectDir"/FwSubject.json
@@ -201,4 +221,6 @@ shift $(("$OPTIND" - 1))
 			  exit 5
 		      fi
 		 fi
+		 cat $(find "$FollowupDir" -type f | grep volume)
+		echo
 	 done

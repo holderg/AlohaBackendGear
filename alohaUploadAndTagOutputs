@@ -66,7 +66,7 @@ FollowupJson=$(jq ".Followup[$FollowupIndex].FollowupT2" "$SubjectAlohaJsonFile"
 FollowupSessionId=$(jq -r -n --argjson FollowupJson "$FollowupJson" "($FollowupJson).SessionId")
 
 AlohaOutputJson='{
-  "FileNameTemplate": "aloha-%s-%s-%s-%s",
+  "FileNameTemplate": "aloha-%s-%s_%s-%s",
   "FilenameSources": [ ".SubjectLabel", ".FromDate", ".ToDate", ".FileName" ],
   "Metadata": "???",
   "FollowupOutputFiles": [
@@ -159,7 +159,7 @@ do
 	FwFileJson=$(echo "$AlohaOutputJson" | jq -r --argjson AlohaFileName "\"$Basename\"" '.. | select(.AlohaFileName | test($AlohaFileName)) ?')
 	FwFileName=$(echo "$FwFileJson" | jq -r '.FwFileName')
 	Tags=$(echo "$FwFileJson" | jq -r '.Tags|@csv' | sed 's/"//g')
-	FwTemplatedFileName=$(printf "$FileNameTemplate" "$SubjectLabel" "$FollowupDate" "$BaselineDate" "$FwFileName")
+	FwTemplatedFileName=$(printf "$FileNameTemplate" "$SubjectLabel" "$BaselineDate" "$FollowupDate" "$FwFileName")
 	FwUploadFilename="${FollowupUploadDir}/${FwTemplatedFileName}"
 	sys cp "$f" "$FwUploadFilename"
 	sys fwuploadfile -t "$Tags" -p "$FollowupSessionId" "$FwUploadFilename" 
