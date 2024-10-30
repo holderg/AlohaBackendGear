@@ -45,6 +45,40 @@ function json2Stanza {
 	 mkAlohaStanza "$AlohaArg" "$AlohaFlag" "$FileId" "$FwFilePath" "$Timestamp" "$SessionId"
 }
 
+#
+# Get the jobs related to the Baseline session
+# fwfind -1 -j -rgz session=66e4737ead8f9c0ea1ce2750 > /tmp/jobs.json
+#
+# Pull the T1w file ids and see if there is more than one
+# *** Should verify Trimmed
+# jq 'select(.gear_info.name == "ashs-dev" and .state == "complete") | .config.inputs.T1w.object.file_id' /tmp/jobs.json
+#
+# This one looks for all input files which would work.... but we just want files in the session
+# jq '..|select((.object.modality == "MR") and (.object.classification.Intent | any(. == "Structural")) and (.object.classification.Measurement | any(. == "T1")) and (.object.tags | any(. == "Trimmed")) and (.object.tags | any(. == "AlohaInput")))? | .object.file_id' /tmp/jobs.json
+#
+# Look through all the session acquisition files for T1/T2
+#     .acquisitions[].files[]
+#   | select(
+#             (.type == "nifti")
+#	 and (.modality == "MR")
+#         and (.classification.Intent | any("Structural"))
+#         and (.classification.Measurement | any("T1"))
+#         and (.tags | any(. == "Trimmed"))
+#	 and (.tags | any(. == "AlohaInput"))
+#     )
+#     | [ .name, .file_id] | @csv
+#    
+# Same for T2
+# jq 'select(.gear_info.name == "ashs-dev" and .state == "complete") | .config.inputs.T2w.object.file_id' /tmp/jobs.json
+#
+# *** make sure to bail if there is more than one T1/T2 for any session
+#
+# Get the segmented Files - There should be 4, Left/Right for ASHS-PMC-T1/T2
+# jq -r 'select(.gear_info.name == "ashs-dev" and .state == "complete") | .outputs[] | select((.tags | length) > 0) | [.file_id, (.tags| sort |join(":")) ] | @csv ' /tmp/jobs.json
+#
+# For the Followup, do the same T1/T2, and now you have enough to run Aloha
+#
+
 function getBaselineStanza {
 	 local Dir="$1"
 	 local SubjectJsonFile="$2"
@@ -202,10 +236,21 @@ SubjectJsonFile="$1"
 SubjectId=$(jq -r '._id' "$SubjectJsonFile")
 SubjectLabel=$(jq -r '.label' "$SubjectJsonFile")
 
+#
+# AlohaDir=/tmp/aloha
+# SubjectJsonFile="/tmp/aloha/Subject.json"
+# fwget -1 -raG 66e4737e1b4b58bc3236d6d1 > "$SubjectJsonFile"
+# SubjectLabel=$(jq -r '.label' "$SubjectJsonFile")
+# BaselineJsonFile=${AlohaDir}/${SubjectLabel}/Baseline.json"
+# jq -r '..|select(.tags | any(. == "Baseline"))?' "$SubjectJsonFile" > "$BaselineJsonFile"
+#
+# BaselineTrimmedT1Jq='.acquisitions[].files[] | select((.tags | (any(. == "Trimmed") and any(. == "AlohaInput"))) and (.classification["Measurement"] | any(. == "T1")) )'
+# BaselineLeftSegmentedT1=
+
 
 	SubjectAlohaJson=$(
             #
-            # Get all the baseline Uids.  Make sure there is only one baseline session
+            # Get the baseline Uids.  Make sure there is only one baseline session
             #
             BaselineSessionId=( $(jq -r '..|select(.tags|any(. == "Baseline"))?' "$SubjectJsonFile" | jq -r ._id) )
             if [ "${#BaselineSessionId[@]}" != 1 ]
