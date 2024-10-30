@@ -34,7 +34,7 @@ def fmtDateTime(d; t): (
 	       | .created as $AcquisitionCreated
 	       | .files[]
                |    select(
-                                ((.type == "nifti") or (.type == "archive"))
+                                ((.type == "nifti") or (.type == "archive") or (.type == "dicom"))
                             and (.modality == "MR")
                             and (.classification.Intent | any("Structural"))
                             and (.classification.Measurement | any((. == "T1") or (. == "T2")))
@@ -55,11 +55,12 @@ def fmtDateTime(d; t): (
 			  , "FileName": $FileName
 			  , "FileId": $FileId
 			  , "FileCreated": .created
+			  , "FileClassificationMeasurement": .classification.Measurement[]
 			  , "SessionDateTime": fmtDateTime(.info.SeriesDate; .info.SeriesTime)
 			}] | sort_by(.SessionDateTime) | last
         ]
 	as $SessionInfo
 	| {
  	      "Baseline": ($SessionInfo | first) 
-	    , "Followups": ($SessionInfo | .[1:])
+	    , "Followups": ($SessionInfo | .[1:] | sort_by(.SessionDateTime) )
 	  }
