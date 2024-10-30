@@ -1,41 +1,42 @@
 {
-  "author": "Gaylord Holder <holder@upenn.edu>",
-  "cite": "",
-  "command": "./run",
-  "config": {},
-  "description": "Aloha Gear",
-  "environment": {
-    "PATH": "/flywheel/v0/flywheel/bin:/tk/greedy/build:/tk/cmrep/build:/tk/c3d/build:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/flywheel/v0/aloha/scripts:/flywheel/v0/aloha/aloha/ext/Linux/bin",
-    "LD_LIBRARY_PATH": "/tk/vtk/build/lib",
-    "FLYWHEEL": "/flywheel/v0",
-    "ALOHA_ROOT": "/flywheel/v0/aloha",
-    "PYTHONPATH": "/flywheel/v0/flywheel/lib",
-    "PWD": "/flywheel/v0"
-  },
-  "custom": {
-    "gear-builder": {
-      "image": "aloha:0.1.0",
-      "category": "analysis"
+    "author": "Gaylord Holder <holder@upenn.edu>",
+    "cite": "",
+    "command": "./run -v -u",
+    "config": {},
+    "description": "Aloha Gear",
+    "environment": {
+        "PATH": "/flywheel/v0/flywheel/bin:/tk/greedy/build:/tk/cmrep/build:/tk/c3d/build:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/flywheel/v0/aloha/scripts:/flywheel/v0/aloha/aloha/ext/Linux/bin",
+        "LD_LIBRARY_PATH": "/tk/vtk/build/lib",
+        "FLYWHEEL": "/flywheel/v0",
+        "ALOHA_ROOT": "/flywheel/v0/aloha",
+        "PYTHONPATH": "/flywheel/v0/flywheel/lib",
+        "PWD": "/flywheel/v0"
     },
-    "flywheel": {
-      "show-job": true
-    }
-  },
-  "inputs": {
-    "input-file": {
-      "base": "file",
-      "optional": false,
-      "description": "Input file for the gear"
+    "custom": {
+        "gear-builder": {
+            "image": "aloha:0.1.3",
+            "category": "analysis"
+        },
+        "flywheel": {
+            "show-job": true,
+            "suite": "BrainScienceCenter"
+        }
     },
-    "api-key": {
-      "base": "api-key",
-      "read-only": false
-    }
-  },
-  "label": "Aloha",
-  "name": "aloha",
-  "source": "",
-  "url": "",
-  "license": "MIT",
-  "version": "0.1.0"
+    "inputs": {
+        "input-file": {
+            "base": "file",
+            "optional": false,
+            "description": "Input file for the gear"
+        },
+        "api-key": {
+            "base": "api-key",
+            "read-only": false
+        }
+    },
+    "label": "Aloha",
+    "name": "aloha",
+    "source": "",
+    "url": "",
+    "license": "MIT",
+    "version": "0.1.3"
 }

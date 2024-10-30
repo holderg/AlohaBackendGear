@@ -1,0 +1,54 @@
+{
+  "destination": {
+    "id": "66e44af0ad8f9c0ea1ce272e",
+    "type": "analysis"
+  },
+  "inputs": {
+    "input-file": {
+      "hierarchy": {
+        "id": "66d308ddf1db2f68d474caa3",
+        "type": "session"
+      },
+      "object": {
+        "type": null,
+        "mimetype": "application/octet-stream",
+        "modality": null,
+        "classification": {},
+        "tags": [
+          "Aloha",
+          "Output",
+          "Left"
+        ],
+        "info": {},
+        "size": 913560,
+        "zip_member_count": null,
+        "version": 2,
+        "file_id": "66e30ed1c9dd7394a8a429b7",
+        "origin": {
+          "type": "user",
+          "id": "holder@upenn.edu"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/input-file/aloha-002_S_1155-2019-05-16-2017-04-23-BaselineT1LeftTrimmedHalfwaySpace",
+        "name": "aloha-002_S_1155-2019-05-16-2017-04-23-BaselineT1LeftTrimmedHalfwaySpace"
+      },
+      "base": "file"
+    },
+    "api-key": {
+      "base": "api-key",
+      "key": "upenn.flywheel.io:djEWhoJBY634lmnw-2f-I43l7pgD_drVb5EUf0II86h2-nSbTENWIUVfQ"
+    }
+  },
+  "config": {},
+  "job": {
+    "id": "66e44af0ad8f9c0ea1ce2730",
+    "gear_info": {
+      "id": "66e4497dd6365e746af76b73",
+      "category": "analysis",
+      "name": "aloha",
+      "version": "0.1.0",
+      "capabilities": null
+    }
+  }
+}
