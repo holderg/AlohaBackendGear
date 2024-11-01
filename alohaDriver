@@ -1,0 +1,176 @@
+#!/bin/bash
+
+CmdName=$(basename "$0")
+
+function sys {
+    [ -n "${opt_n}${opt_v}" ] && echo "$(date): $@" 1>&2
+    [ -n "$opt_n" ] || "$@"
+}
+
+while getopts nuv arg
+do
+	case "$arg" in
+	     n|u|v)
+		eval "opt_${arg}='${OPTARG:=1}'"
+		;;
+	esac
+done
+
+shift $(( "$OPTIND" - 1 ))
+
+[ "$opt_u" ] && UpdateAll=1
+
+SubjectId="$1"
+SubjectJsonFile=/tmp/subject.json
+
+if [ \( ! -e "$SubjectJsonFile" \) -a \( -s "$SubjectJsonFile" \) ] || [ -n "$UpdateAll" ] 
+then
+	sys fwget -1 -raGz "$SubjectId" > "$SubjectJsonFile"
+	if [ "$?" != 0 ]
+	then
+		echo "${CmdName} : failed getting subject '$SubjectId'" 1>&2
+		exit 1
+	fi
+fi
+
+SortedSessionsJsonFile="/tmp/sessions.json"
+jq -r -f alohaSortSessions.jq "$SubjectJsonFile" > "$SortedSessionsJsonFile"
+
+# *** Don't need acquisition info as that will be in the T1/T2 stanzas
+BaselineJson=$(jq -r '.Baseline' "$SortedSessionsJsonFile")
+if [ -z "$BaselineJson" ]
+then
+	echo "${CmdName} : Missing Baseline session" 1>&2
+	exit 2
+fi
+
+FollowupCount=$(jq -r '.Followups | length' "$SortedSessionsJsonFile")
+if [ 0 -ge "$FollowupCount" ]
+then
+	echo "${CmdName} : Missing Followup sessions" 1>&2
+	exit 3
+fi
+
+BaselineSessionId=$(echo "$BaselineJson" | jq -r '.SessionId')
+BaselineSessionJsonFile=/tmp/baseline.json
+jq -r '..|select(._id == "'"$BaselineSessionId"'")?' "$SubjectJsonFile" > "$BaselineSessionJsonFile"
+
+BaselineT1Json=$(jq -r --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile")
+if [ -z "$BaselineT1Json" ] || [ "$BaselineT1Json" == "null" ]
+then
+	echo "${CmdName} : Missing baseline T1 acquisition" 1>&2
+	exit 4
+fi
+
+BaselineT2Json=$(jq -r --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile")
+if [ -z "$BaselineT2Json" ] || [ "$BaselineT2Json" == "null" ]
+then
+	echo "${CmdName} : Missing baseline T2 acquisition" 1>&2
+	exit 5
+fi
+
+BaselineJobsJsonFile=/tmp/BaselineJobs.json
+if [ \( ! -e "$BaselineJobsJsonFile" \) -a \( -s "$BaselineJobsJsonFile" \) ] || [ -n "$UpdateAll" ]
+then
+	sys fwfind -1 -j -rgz session="$BaselineSessionId" > "$BaselineJobsJsonFile"
+	if [ "$?" != 0 ]
+	then
+		echo "${CmdName} : failed getting finding jobs for '$SessionLabel' ($SessionId)" 1>&2
+		exit 1
+	fi
+fi
+
+BaselineT1LeftSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+if [ -z "$BaselineT1LeftSegmentationJson" ] || [ "$BaselineT1LeftSegmentationJson" == "null" ]
+then
+	echo "${CmdName} : Missing baseline T1 Left segmentation file" 1>&2
+	exit 6
+fi
+
+BaselineT1RightSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Right"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+if [ -z "$BaselineT1RightSegmentationJson" ] || [ "$BaselineT1RightSegmentationJson" == "null" ]
+then
+	echo "${CmdName} : Missing baseline T1 Right segmentation file" 1>&2
+	exit 7
+fi
+
+BaselineT2LeftSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T2"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+if [ -z "$BaselineT2LeftSegmentationJson" ] || [ "$BaselineT2LeftSegmentationJson" == "null" ]
+then
+	echo "${CmdName} : Missing baseline T2 Left segmentation file" 1>&2
+	exit 8
+fi
+
+BaselineT2RightSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T2"' --argjson Handedness '"Right"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+if [ -z "$BaselineT2RightSegmentationJson" ] || [ "$BaselineT2RightSegmentationJson" == "null" ]
+then
+	echo "${CmdName} : Missing baseline T2 Right segmentation file" 1>&2
+	exit 7
+fi
+
+#
+# Followup Session Info should include session data
+#
+JobDate=$(date +%Y-%m-%dT%H:%M%:z)
+JobLabel=Aloha
+JobId=
+
+JobJson="{\"JobLabel\": \"JobLabel\", \"JobId\": \"$JobId\", \"JobDate\": \"$JobDate\"}"
+
+BaselineJsonFile=/tmp/Baseline.json
+jq -r -n	 --argjson JobInfo "$JobJson"							\
+		 --argjson Baseline "$BaselineJson"						\
+		 --argjson BaselineT1 "$BaselineT1Json"						\
+  		 --argjson BaselineT2 "$BaselineT2Json"						\
+      		 --argjson BaselineT1LeftSegmentation "$BaselineT1LeftSegmentationJson" 	\
+      		 --argjson BaselineT1RightSegmentation "$BaselineT1RightSegmentationJson" 	\
+      		 --argjson BaselineT2LeftSegmentation "$BaselineT2LeftSegmentationJson" 	\
+      		 --argjson BaselineT2RightSegmentation "$BaselineT2RightSegmentationJson" 	\
+      		   '    { "JobInfo": $JobInfo} + {"Baseline": (
+		   	       $Baseline 
+			       + {
+			          "T1": $BaselineT1
+ 			        , "T2": $BaselineT2
+ 			        , "T1LeftSegmentation": $BaselineT1LeftSegmentation
+ 			        , "T1RightSegmentation": $BaselineT1RightSegmentation
+ 			        , "T2LeftSegmentation": $BaselineT2LeftSegmentation
+ 			        , "T2RightSegmentation": $BaselineT2RightSegmentation
+			          })
+ 			 }' > "$BaselineJsonFile"
+
+
+FollowupsJsonFile=/tmp/followups.json
+for FollowupSessionId in $(jq -r '.Followups[] | .SessionId' "$SortedSessionsJsonFile")
+do
+	FollowupSessionJsonFile=/tmp/FollowupSession.json
+	jq -r '..|select(._id == "'"$FollowupSessionId"'")?' "$SubjectJsonFile" > "$FollowupSessionJsonFile"
+	FollowupJson=$(jq -r '..|select(._id == "'"$FollowupSessionId"'")? | ({"SessionId": ._id, "SessionLabel": .label, "SessionTimestamp": .timestamp})' "$SubjectJsonFile")
+	# *** should probably verify we have something
+	[ -n "$opt_v" ] && echo "$FollowupSessionLabel" 1>&2
+
+	FollowupSessionLabel=$(echo "$FollowupSessionJson" | jq -r '.SessionLabel')
+	# *** should probably verify we have something
+	[ -n "$opt_v" ] && echo "$FollowupSessionLabel" 1>&2
+
+	FollowupT1Json=$(jq -r --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile")
+	if [ -z "$FollowupT1Json" ] || [ "$FollowupT1Json" == "null" ]
+	then
+		echo "${CmdName} : followup session '$FollowupSessionLabel' ($FollowupSessionId) missing T1 acquisition.  Skipping." 1>&2
+		FollowupT1Json='{"Missing": true}'
+	fi
+
+	FollowupT2Json=$(jq -r --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile")
+	if [ -z "$FollowupT2Json" ] || [ "$FollowupT2Json" == "null" ]
+	then
+		echo "${CmdName} : followup session '$FollowupSessionLabel' ($FollowupSessionId) missing T2 acquisition.  Skipping." 1>&2
+		FollowupT2Json='{"Missing": true}'
+
+	fi
+
+	jq -r -n --argjson Followup "$FollowupJson"				\
+	      	 --argjson FollowupT1 "$FollowupT1Json"				\
+	         --argjson FollowupT2 "$FollowupT2Json"				\
+		 '$Followup + {"T1": $FollowupT1, "T2": $FollowupT2}'
+done | jq -s '{"Followups": . }' > "$FollowupsJsonFile"
+
+jq -r -n --slurpfile Baseline "$BaselineJsonFile" --slurpfile Followups "$FollowupsJsonFile" '($Baseline[]) + ($Followups[])'

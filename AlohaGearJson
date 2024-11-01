@@ -1,0 +1,33 @@
+#
+# Want a stream of Session objects
+# with acquitions objects including the object label and id, and the files from aloha's interest
+#
+# Aloha input verifier must check there is a single baseline session, and at least one followup session.
+# Within the baseline session, there 
+# Segmented T1/T2/Left/Right AlohaInput file.
+# Within each follow up, there must be a single T1/T2 AlohaInput file.  There may be multiple
+# NotAlohaInput and MaybeAlohaInput files
+#
+# When the verifier runs, it updates the session timestamps and sets the Session and File Tags according
+# to the AlohaGearJson.  New Sessions/Files may be added during this time.
+# The verifier has a Full and a Relevant mode, where it only shows the files Aloha will use in Relevant
+# and it will show all the files the Verifier knows about and their state in Full mode.
+# The verifier can be run in update and check modes
+#
+{
+    SessionTag: Baseline|Followup
+    SessionId: Id
+    SessionLabel: Label
+    AlohaVerifierTimestamp: Timestamp
+    Files: [
+        {
+            parents { 
+	        FileId: Id
+		FileName: Name
+	        FileTags: AlohaInput|NotAlohaInput|MaybeAlohaInput
+		          T1|T2|Left|Right|Segmented
+	    }
+        }
+    ]
+}
+
