@@ -5,11 +5,11 @@
 # *** This uses the file created date, which is when the file hits flywheel, not when the dicom.zip file was created
 #
 
+include "FwLib";
+
 def getFileCreatedDateTime(f): (
     (if (f.info.AcquisitionDate) then f.info.AcquisitionDate else f.info.SeriesDate end)
 );
-
-#
 
 def fmtDateTime(d; t): (
     (
@@ -26,7 +26,7 @@ def fmtDateTime(d; t): (
       [.sessions[]
           |[ .label as $SessionLabel
           | ._id as $SessionId
-	  | .timestamp as $SessionTimestamp
+	  | sessionScanDateTime(.) as $SessionScanDateTime
 	  | select((.acquisitions | length) > 0)
           | .acquisitions[]
 	       | .label as $AcquisitionLabel
@@ -48,7 +48,7 @@ def fmtDateTime(d; t): (
 	                { 
 			    "SessionLabel": $SessionLabel
 			  , "SessionId": $SessionId
-			  , "SessionTimestamp": $SessionTimestamp
+			  , "SessionScanDateTime": $SessionScanDateTime
 			  , "AcquisitionLabel": $AcquisitionLabel
 			  , "AcquisitionId": $AcquisitionId
 			  , "AcquisitionCreated": $AcquisitionCreated
@@ -56,11 +56,10 @@ def fmtDateTime(d; t): (
 			  , "FileId": $FileId
 			  , "FileCreated": .created
 			  , "FileClassificationMeasurement": .classification.Measurement[]
-			  , "SessionDateTime": fmtDateTime(.info.SeriesDate; .info.SeriesTime)
-			}] | sort_by(.SessionDateTime) | last
+			}] | sort_by(.SessionScanDateTime) | last
         ]
 	as $SessionInfo
 	| {
  	      "Baseline": ($SessionInfo | first) 
-	    , "Followups": ($SessionInfo | .[1:] | sort_by(.SessionDateTime) )
+	    , "Followups": ($SessionInfo | .[1:] | sort_by(.SessionScanDateTime) )
 	  }

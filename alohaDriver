@@ -1,6 +1,14 @@
 #!/bin/bash
 
+#
+# ./alohaDriver 66e4737e1b4b58bc3236d6d1
+# where  66e4737e1b4b58bc3236d6d1 is a subject id
+#
+
 CmdName=$(basename "$0")
+
+FwDir=$(dirname $(dirname $(which fwget)))
+FwLibDir="${FwDir}/lib"
 
 function sys {
     [ -n "${opt_n}${opt_v}" ] && echo "$(date): $@" 1>&2
@@ -34,7 +42,7 @@ then
 fi
 
 SortedSessionsJsonFile="/tmp/sessions.json"
-jq -r -f alohaSortSessions.jq "$SubjectJsonFile" > "$SortedSessionsJsonFile"
+jq -r  -L "$FwLibDir" -f alohaSortSessions.jq "$SubjectJsonFile" > "$SortedSessionsJsonFile"
 
 # *** Don't need acquisition info as that will be in the T1/T2 stanzas
 BaselineJson=$(jq -r '.Baseline' "$SortedSessionsJsonFile")
@@ -144,7 +152,7 @@ for FollowupSessionId in $(jq -r '.Followups[] | .SessionId' "$SortedSessionsJso
 do
 	FollowupSessionJsonFile=/tmp/FollowupSession.json
 	jq -r '..|select(._id == "'"$FollowupSessionId"'")?' "$SubjectJsonFile" > "$FollowupSessionJsonFile"
-	FollowupJson=$(jq -r '..|select(._id == "'"$FollowupSessionId"'")? | ({"SessionId": ._id, "SessionLabel": .label, "SessionTimestamp": .timestamp})' "$SubjectJsonFile")
+	FollowupJson=$(jq -r -L "$FwLibDir" 'include "FwLib"; ..|select(._id == "'"$FollowupSessionId"'")? | ({"SessionId": ._id, "SessionLabel": .label, "SessionScanDateTime": sessionScanDateTime(.)})' "$SubjectJsonFile")
 	# *** should probably verify we have something
 	[ -n "$opt_v" ] && echo "$FollowupSessionLabel" 1>&2
 
