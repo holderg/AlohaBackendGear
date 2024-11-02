@@ -49,13 +49,13 @@ def fmtDateTime(d; t): (
 			    "SessionLabel": $SessionLabel
 			  , "SessionId": $SessionId
 			  , "SessionScanDateTime": $SessionScanDateTime
-			  , "AcquisitionLabel": $AcquisitionLabel
-			  , "AcquisitionId": $AcquisitionId
-			  , "AcquisitionCreated": $AcquisitionCreated
-			  , "FileName": $FileName
-			  , "FileId": $FileId
-			  , "FileCreated": .created
-			  , "FileClassificationMeasurement": .classification.Measurement[]
+#			  , "AcquisitionLabel": $AcquisitionLabel
+#			  , "AcquisitionId": $AcquisitionId
+#			  , "AcquisitionCreated": $AcquisitionCreated
+#			  , "FileName": $FileName
+#			  , "FileId": $FileId
+#			  , "FileCreated": .created
+#			  , "FileClassificationMeasurement": .classification.Measurement[]
 			}] | sort_by(.SessionScanDateTime) | last
         ]
 	as $SessionInfo

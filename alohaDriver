@@ -119,7 +119,7 @@ fi
 #
 # Followup Session Info should include session data
 #
-JobDate=$(date +%Y-%m-%dT%H:%M%:z)
+JobDate=$(date +%Y-%m-%dT%H:%M:%S%:z)
 JobLabel=Aloha
 JobId=
 
