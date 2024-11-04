@@ -31,9 +31,9 @@
 #	, "project": $ProjectLabel
 #	, "subject": $SubjectLabel
 #	, "session": $SessionLabel
-	, "analysis": $AnalysisLabel
-	, "analysisId": $AnalysisId
-	, "analysisTimestamp": $AnalysisCreatedTimestamp
+	, "AnalysisLabel": $AnalysisLabel
+	, "AnalysisId": $AnalysisId
+	, "AnalysisTimestamp": $AnalysisCreatedTimestamp
       }
       ]
  | sort_by(.FileTimestamp) | last
