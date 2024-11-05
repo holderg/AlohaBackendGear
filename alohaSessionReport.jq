@@ -30,7 +30,7 @@ def baselineSessionInfo(s): (
 );
 
 def followupSessionInfo(s): (
-       s.SessionLabel
+        s.SessionLabel
       , s.SessionId
       , s.SessionScanDateTime
       , mriInfo(s.T1)
@@ -38,5 +38,5 @@ def followupSessionInfo(s): (
     
 );
 
-  [ baselineSessionInfo(.Baseline) ]
-+ [ .Followups[] |  followupSessionInfo(.) ] | @csv
+    [ baselineSessionInfo(.Baseline) ] as $BaselineInfo
+  | .Followups[] | ($BaselineInfo + [ followupSessionInfo(.) ]) | @csv
