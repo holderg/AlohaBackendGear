@@ -60,6 +60,6 @@ def fmtDateTime(d; t): (
         ]
 	as $SessionInfo
 	| {
- 	      "Baseline": ($SessionInfo | sort_by(.SessionScanDateTime) | first) 
-	    , "Followups": ($SessionInfo | sort_by(.SessionScanDateTime | .[1:]) )
+ 	      "Baseline": ($SessionInfo | sort_by(.SessionScanDateTime) | first)
+	    , "Followups": ($SessionInfo | sort_by(.SessionScanDateTime) | .[1:])
 	  }
