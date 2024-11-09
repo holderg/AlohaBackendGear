@@ -5,20 +5,31 @@
 # where  66e4737e1b4b58bc3236d6d1 is a subject id
 #
 
+#
+# -a download AlohaInputs.json from the flywheel subject container 
+# -d download input files
+# -n no-op
+# -o [site|stdout|none]
+#     create AlohaInputs.json and upload it to the flywheel site, print to stdout, neither
+#     the AlohaInputs.json file will not be created unless -o is part of the command line
+# -r run aloha code
+# -u update files that take a long time to get
+# -v verbose
+
 CmdName=$(basename "$0")
 
 FwDir=$(dirname $(dirname $(which fwget)))
 FwLibDir="${FwDir}/lib"
 
 function sys {
-    [ -n "${opt_n}${opt_v}" ] && echo "$(date): $@" 1>&2
+    [ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
     [ -n "$opt_n" ] || "$@"
 }
 
-while getopts nuv arg
+while getopts adno:ruv arg
 do
 	case "$arg" in
-	     n|u|v)
+	     a|d|n|o|r|u|v)
 		eval "opt_${arg}='${OPTARG:=1}'"
 		;;
 	esac
@@ -40,145 +51,305 @@ then
 		exit 1
 	fi
 fi
+SubjectLabel=$(jq -r '.label' "$SubjectJsonFile")
+Group=$(jq -r '.parents.group' "$SubjectJsonFile")
+ProjectId=$(jq -r '.parents.project' "$SubjectJsonFile")
+ProjectLabel=$(fwget -1 "$ProjectId" | jq -r '.label')
+TmpDir="/tmp/Aloha"
+[ -e "$TmpDir" ] || mkdir -p "$TmpDir"
+AlohaInputsJsonFile="${TmpDir}/AlohaInputs.json"
 
-SortedSessionsJsonFile="/tmp/sessions.json"
-jq -r  -L "$FwLibDir" -f alohaSortSessions.jq "$SubjectJsonFile" > "$SortedSessionsJsonFile"
+AlohaWorkDir="${TmpDir}/Work"
+[ -e "$AlohaWorkDir" ] || mkdir -p "$AlohaWorkDir"
 
-# *** Don't need acquisition info as that will be in the T1/T2 stanzas
-BaselineJson=$(jq -r '.Baseline' "$SortedSessionsJsonFile")
-if [ -z "$BaselineJson" ]
+if [ -n "$opt_o" ]
 then
-	echo "${CmdName} : Missing Baseline session" 1>&2
-	exit 2
+    SortedSessionsJsonFile="${TmpDir}/sessions.json"
+    jq -r  -L "$FwLibDir" -f alohaSortSessions.jq "$SubjectJsonFile" > "$SortedSessionsJsonFile"
+    
+    # *** Don't need acquisition info as that will be in the T1/T2 stanzas
+    BaselineJson=$(jq -r '.Baseline' "$SortedSessionsJsonFile")
+    if [ -z "$BaselineJson" ]
+    then
+    	echo "${CmdName} : Missing Baseline session" 1>&2
+    	exit 2
+    fi
+    
+    FollowupCount=$(jq -r '.Followups | length' "$SortedSessionsJsonFile")
+    if [ 0 -ge "$FollowupCount" ]
+    then
+    	echo "${CmdName} : Missing Followup sessions" 1>&2
+    	exit 3
+    fi
+    
+    BaselineSessionId=$(echo "$BaselineJson" | jq -r '.SessionId')
+    BaselineSessionJsonFile="${TmpDir}/baseline.json"
+    jq -r '..|select(._id == "'"$BaselineSessionId"'")?' "$SubjectJsonFile" > "$BaselineSessionJsonFile"
+    
+    BaselineT1Json=$(jq -r --argjson AlohaArgFlag '"-b"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq "$BaselineSessionJsonFile")
+    if [ -z "$BaselineT1Json" ] || [ "$BaselineT1Json" == "null" ]
+    then
+    	echo "${CmdName} : Missing baseline T1 acquisition" 1>&2
+    	exit 4
+    fi
+    
+    BaselineT2Json=$(jq -r --argjson AlohaArgFlag '"-c"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile")
+    if [ -z "$BaselineT2Json" ] || [ "$BaselineT2Json" == "null" ]
+    then
+    	echo "${CmdName} : Missing baseline T2 acquisition" 1>&2
+    	exit 5
+    fi
+    
+    BaselineJobsJsonFile="${TmpDir}/BaselineJobs.json"
+    if [ ! \( \( -e "$BaselineJobsJsonFile" \) -a \( -s "$BaselineJobsJsonFile" \) \) ] || [ -n "$UpdateAll" ]
+    then
+        # *** should have a create > $BaselineScanDateTime clause
+    	sys fwfind -1 -j -rgz session="$BaselineSessionId" > "$BaselineJobsJsonFile"
+    	if [ "$?" != 0 ]
+    	then
+    		echo "${CmdName} : failed getting finding jobs for '$SessionLabel' ($SessionId)" 1>&2
+    		exit 1
+    	fi
+    fi
+    
+    BaselineT1LeftSegmentationJson=$(jq -s -r --argjson AlohaArgFlag '"-r"' --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+    if [ -z "$BaselineT1LeftSegmentationJson" ] || [ "$BaselineT1LeftSegmentationJson" == "null" ]
+    then
+    	echo "${CmdName} : Missing baseline T1 Left segmentation file" 1>&2
+    	exit 6
+    fi
+    
+    BaselineT1RightSegmentationJson=$(jq -s -r --argjson AlohaArgFlag '"-s"' --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Right"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+    if [ -z "$BaselineT1RightSegmentationJson" ] || [ "$BaselineT1RightSegmentationJson" == "null" ]
+    then
+    	echo "${CmdName} : Missing baseline T1 Right segmentation file" 1>&2
+    	exit 7
+    fi
+    
+    BaselineT2LeftSegmentationJson=$(jq -s -r --argjson AlohaArgFlag '"-t"' --argjson Atlas '"ASHS-PMC-T2"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+    if [ -z "$BaselineT2LeftSegmentationJson" ] || [ "$BaselineT2LeftSegmentationJson" == "null" ]
+    then
+    	echo "${CmdName} : Missing baseline T2 Left segmentation file" 1>&2
+    	exit 8
+    fi
+    
+    BaselineT2RightSegmentationJson=$(jq -s -r --argjson AlohaArgFlag '"-u"' --argjson Atlas '"ASHS-PMC-T2"' --argjson Handedness '"Right"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
+    if [ -z "$BaselineT2RightSegmentationJson" ] || [ "$BaselineT2RightSegmentationJson" == "null" ]
+    then
+    	echo "${CmdName} : Missing baseline T2 Right segmentation file" 1>&2
+    	exit 7
+    fi
+    
+    #
+    # Followup Session Info should include session data
+    #
+    JobDate=$(date +%Y-%m-%dT%H:%M:%S%:z)
+    JobLabel=Aloha
+    JobId=
+    
+    JobJson="{\"JobLabel\": \"$JobLabel\", \"JobId\": \"$JobId\", \"JobDate\": \"$JobDate\"}"
+    
+    BaselineJsonFile="${TmpDir}/Baseline.json"
+    jq -r -n	 --argjson JobInfo "$JobJson"							\
+    		 --argjson Baseline "$BaselineJson"						\
+    		 --argjson BaselineT1 "$BaselineT1Json"						\
+      		 --argjson BaselineT2 "$BaselineT2Json"						\
+          		 --argjson BaselineT1LeftSegmentation "$BaselineT1LeftSegmentationJson" 	\
+          		 --argjson BaselineT1RightSegmentation "$BaselineT1RightSegmentationJson" 	\
+          		 --argjson BaselineT2LeftSegmentation "$BaselineT2LeftSegmentationJson" 	\
+          		 --argjson BaselineT2RightSegmentation "$BaselineT2RightSegmentationJson" 	\
+          		   '    { "JobInfo": $JobInfo} + {"Baseline": (
+    		   	       $Baseline 
+    			       + {
+    			          "T1": $BaselineT1
+     			        , "T2": $BaselineT2
+     			        , "T1LeftSegmentation": $BaselineT1LeftSegmentation
+     			        , "T1RightSegmentation": $BaselineT1RightSegmentation
+     			        , "T2LeftSegmentation": $BaselineT2LeftSegmentation
+     			        , "T2RightSegmentation": $BaselineT2RightSegmentation
+    			          })
+     			 }' > "$BaselineJsonFile"
+    
+    
+    FollowupsJsonFile="${TmpDir}/Followups.json"
+    for FollowupSessionId in $(jq -r '.Followups[] | .SessionId' "$SortedSessionsJsonFile")
+    do
+        [ -n "$opt_v" ] && echo "FollowupSessionId = '$FollowupSessionId'" 1>&2
+    
+    	FollowupSessionJsonFile="${TmpDir}/FollowupSession.json"
+    	jq -r '..|select(._id == "'"$FollowupSessionId"'")?' "$SubjectJsonFile" > "$FollowupSessionJsonFile"
+    	# *** should probably verify we have something
+    	FollowupJson=$(jq -r -L "$FwLibDir" 'include "FwLib"; ..|select(._id == "'"$FollowupSessionId"'")? | ({"SessionId": ._id, "SessionLabel": .label, "SessionScanDateTime": sessionScanDateTime(.)})' "$SubjectJsonFile")
+    
+    	FollowupSessionLabel=$(echo "$FollowupJson" | jq '.SessionLabel')
+    
+    	FollowupT1Json=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile")
+    	if [ -z "$FollowupT1Json" ] || [ "$FollowupT1Json" == "null" ]
+    	then
+    		echo "${CmdName} : followup session '$FollowupSessionLabel' ($FollowupSessionId) missing T1 acquisition.  Skipping." 1>&2
+    		FollowupT1Json='{"Missing": true}'
+    	fi
+    
+    	FollowupT2Json=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile")
+    	if [ -z "$FollowupT2Json" ] || [ "$FollowupT2Json" == "null" ]
+    	then
+    		echo "${CmdName} : followup session '$FollowupSessionLabel' ($FollowupSessionId) missing T2 acquisition.  Skipping." 1>&2
+    		FollowupT2Json='{"Missing": true}'
+    
+    	fi
+    
+    	jq -r -n --argjson Followup "$FollowupJson"				\
+    	      	 --argjson FollowupT1 "$FollowupT1Json"				\
+    	         --argjson FollowupT2 "$FollowupT2Json"				\
+    		 '$Followup + {"T1": $FollowupT1, "T2": $FollowupT2}'
+    done | jq -s '{"Followups": . }' > "$FollowupsJsonFile"
+    
+    jq -r -n --slurpfile Baseline "$BaselineJsonFile" --slurpfile Followups "$FollowupsJsonFile" '($Baseline[]) + ($Followups[])' > "$AlohaInputsJsonFile"
+    
+    if echo "$opt_o" | grep -qi 'stdout'
+    then
+        cat "$AlohaInputsJsonFile"
+    fi
+    
+    if echo "$opt_o" | grep -qi 'site'
+    then
+        sys fwuploadfile -p "$SubjectId" "$AlohaInputsJsonFile"
+    fi
 fi
 
-FollowupCount=$(jq -r '.Followups | length' "$SortedSessionsJsonFile")
-if [ 0 -ge "$FollowupCount" ]
+FollowupDir="${TmpDir}/Followups"
+
+if [ -n "$opt_a" ]
 then
-	echo "${CmdName} : Missing Followup sessions" 1>&2
-	exit 3
+    AlohaInputsJsonFilename=$(basename "$AlohaInputsJsonFile")
+    AlohaInputsJsonFileId=$(fwget -1 -raz "$SubjectId" | jq -r '.files[] | select(.name == "'"$AlohaInputsJsonFilename"'") | .file_id')
+    sys fwget -v -f --download --download-dir "$TmpDir" "$AlohaInputsJsonFileId"
 fi
 
-BaselineSessionId=$(echo "$BaselineJson" | jq -r '.SessionId')
-BaselineSessionJsonFile=/tmp/baseline.json
-jq -r '..|select(._id == "'"$BaselineSessionId"'")?' "$SubjectJsonFile" > "$BaselineSessionJsonFile"
+BaselineDir="${TmpDir}/Baseline"
+[ -e "$BaselineDir" ] || sys mkdir "$BaselineDir"
 
-BaselineT1Json=$(jq -r --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile")
-if [ -z "$BaselineT1Json" ] || [ "$BaselineT1Json" == "null" ]
+BaselineJsonFile="${TmpDir}/Baseline.json"
+jq -r '.Baseline' "$AlohaInputsJsonFile" > "$BaselineJsonFile"
+
+DownloadedAllFiles=true
+if [ -n "$opt_d" ]
 then
-	echo "${CmdName} : Missing baseline T1 acquisition" 1>&2
-	exit 4
+    for FileId in $(jq -r '..|.FileId? | select(.)' $BaselineJsonFile)
+    do
+        sys fwget -v -f --download --download-dir "$BaselineDir" "$FileId"
+        if [ "$?" != 0 ]
+        then
+    	    echo "${CmdName} : downloading file '$FileId' failed" 1>&2
+    	    DownloadAllFiles=false
+        fi
+    done
+    
+    for FollowupSessionId in $(jq -r '.Followups[].SessionId' "$AlohaInputsJsonFile")
+    do
+            [ -n "$opt_v" ] && echo "FollowupSessionId = '$FollowupSessionId'" 1>&2
+    
+    	FollowupSessionLabel=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .SessionLabel' "$AlohaInputsJsonFile")
+    	
+    	FollowupSessionDir="${FollowupDir}/${FollowupSessionLabel}"
+    	[ -e "$FollowupSessionDir" ] || mkdir -p "$FollowupSessionDir"
+    
+    	FollowupSessionJsonFile="${FollowupSessionDir}/FollowupSession.json"
+    	jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'")' "$AlohaInputsJsonFile" > "$FollowupSessionJsonFile"
+    	
+    	for FileId in $(jq -r '..|.FileId? | select(.)' "$FollowupSessionJsonFile")
+    	do
+    	    sys fwget -v -f --download --download-dir "$FollowupSessionDir" "$FileId"
+    	    if [ "$?" != 0 ]
+	    then
+    		echo "${CmdName} : downloading file '$FileId' failed" 1>&2
+    		DownloadAllFiles=false
+    	    fi
+        done
+    done
 fi
 
-BaselineT2Json=$(jq -r --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile")
-if [ -z "$BaselineT2Json" ] || [ "$BaselineT2Json" == "null" ]
+if [ -n "$opt_r" ]
 then
-	echo "${CmdName} : Missing baseline T2 acquisition" 1>&2
-	exit 5
+	AlohaBaselineArgs=()
+	RunAloha=true
+
+	#skip the session info keys
+	for k in $(jq -r '.Baseline | keys[] as $k | select((.[$k]|type) == "object") | $k' "$AlohaInputsJsonFile")
+	do
+		AlohaArgFlag=$(jq -r '.Baseline.'"$k"' | .AlohaArgFlag' "$AlohaInputsJsonFile")
+		FileName=$(jq -r '.Baseline.'"$k"' | .FileName' "$AlohaInputsJsonFile")
+		InputFilePath="${BaselineDir}/${FileName}"
+		AlohaBaselineArgs+=( "'${AlohaArgFlag}' '$InputFilePath'" )
+	done
+
+	AlohaFollowupArgs=()
+	for FollowupSessionId in $(jq -r '.Followups[].SessionId' "$AlohaInputsJsonFile")
+	do
+    	    FollowupSessionLabel=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .SessionLabel' "$AlohaInputsJsonFile")
+	    if [ -z "$FollowupSessionLabel" ] || [ "$FollowupSessionLabel" == 'null' ]
+	    then
+		echo "${CmdName} : No FollowupSessionLabel for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
+ 										    
+		RunAloha=false
+	    fi
+
+            [ -n "$opt_v" ] && echo "${CmdName} : FollowupSessionLabel = '$FollowupSessionLabel'" 1>&2
+    
+	    FollowupSessionT1AlohaArgFlag=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .T1.AlohaArgFlag' "$AlohaInputsJsonFile")
+	    if [ -z "$FollowupSessionT1AlohaArgFlag" ] || [ "$FollowupSessionT1AlohaArgFlag" == 'null' ]
+	    then
+		echo "${CmdName} : No FollowupSessionT1AlohaFlag for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
+ 										    
+		RunAloha=false
+	    fi
+
+	    FollowupSessionT1FileName=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .T1.FileName' "$AlohaInputsJsonFile")
+	    if [ -z "$FollowupSessionT1FileName" ] || [ "$FollowupSessionT1FileName" == 'null' ]
+	    then
+		echo "${CmdName} : No FollowupSessionT1FileName for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
+ 										    
+		RunAloha=false
+	    fi
+
+	    FollowupSessionT2AlohaArgFlag=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .T2.AlohaArgFlag' "$AlohaInputsJsonFile")
+	    if [ -z "$FollowupSessionT2AlohaArgFlag" ] || [ "$FollowupSessionT2AlohaArgFlag" == 'null' ]
+	    then
+		echo "${CmdName} : No FollowupSessionT2AlohaArgFlag for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
+ 										    
+		RunAloha=false
+	    fi
+
+	    FollowupSessionT2FileName=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .T2.FileName' "$AlohaInputsJsonFile")
+	    if [ -z "$FollowupSessionT2FileName" ] || [ "$FollowupSessionT2FileName" == 'null' ]
+	    then
+		echo "${CmdName} : No FollowupSessionT2FileName for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
+ 										    
+		RunAloha=false
+	    fi
+
+	    [ -n "$opt_v" ] && echo "${CmdName} : RunAloha = '$RunAloha'" 1>&2
+	    
+	    if [ "$RunAloha" == 'true' ]
+	    then
+    		FollowupSessionDir="${FollowupDir}/${FollowupSessionLabel}"
+    		FollowupSessionT1FilePath="${FollowupSessionDir}/${FollowupSessionT1FileName}"
+    		FollowupSessionT2FilePath="${FollowupSessionDir}/${FollowupSessionT2FileName}"
+
+		AlohaFollowupArgs+=( "$FollowupSessionT1AlohaArgFlag" "$FollowupSessionT1FilePath" )
+		AlohaFollowupArgs+=( "$FollowupSessionT2AlohaArgFlag" "$FollowupSessionT2FilePath" )
+
+		echo aloha "${AlohaBaselineArgs[@]} ${AlohaFollowupArgs[@]}" -w "$AlohaWorkDir"
+	    else
+		echo "${CmdName} : Invalid session aloha arguments for '${FollowupSessionLabel}(${FollowupSessionId})'. Skipping" 1>&2
+	    fi
+
+	done
 fi
 
-BaselineJobsJsonFile=/tmp/BaselineJobs.json
-if [ \( ! -e "$BaselineJobsJsonFile" \) -a \( -s "$BaselineJobsJsonFile" \) ] || [ -n "$UpdateAll" ]
-then
-	sys fwfind -1 -j -rgz session="$BaselineSessionId" > "$BaselineJobsJsonFile"
-	if [ "$?" != 0 ]
-	then
-		echo "${CmdName} : failed getting finding jobs for '$SessionLabel' ($SessionId)" 1>&2
-		exit 1
-	fi
-fi
-
-BaselineT1LeftSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
-if [ -z "$BaselineT1LeftSegmentationJson" ] || [ "$BaselineT1LeftSegmentationJson" == "null" ]
-then
-	echo "${CmdName} : Missing baseline T1 Left segmentation file" 1>&2
-	exit 6
-fi
-
-BaselineT1RightSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Right"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
-if [ -z "$BaselineT1RightSegmentationJson" ] || [ "$BaselineT1RightSegmentationJson" == "null" ]
-then
-	echo "${CmdName} : Missing baseline T1 Right segmentation file" 1>&2
-	exit 7
-fi
-
-BaselineT2LeftSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T2"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
-if [ -z "$BaselineT2LeftSegmentationJson" ] || [ "$BaselineT2LeftSegmentationJson" == "null" ]
-then
-	echo "${CmdName} : Missing baseline T2 Left segmentation file" 1>&2
-	exit 8
-fi
-
-BaselineT2RightSegmentationJson=$(jq -s -r --argjson Atlas '"ASHS-PMC-T2"' --argjson Handedness '"Right"' -f alohaFindSegmentFiles.jq "$BaselineJobsJsonFile")
-if [ -z "$BaselineT2RightSegmentationJson" ] || [ "$BaselineT2RightSegmentationJson" == "null" ]
-then
-	echo "${CmdName} : Missing baseline T2 Right segmentation file" 1>&2
-	exit 7
-fi
-
+exit
 #
-# Followup Session Info should include session data
+# Dict to CSV jq code from 
+#    https://stackoverflow.com/questions/32960857/how-to-convert-arbitrary-simple-json-to-csv-using-jq
 #
-JobDate=$(date +%Y-%m-%dT%H:%M:%S%:z)
-JobLabel=Aloha
-JobId=
-
-JobJson="{\"JobLabel\": \"$JobLabel\", \"JobId\": \"$JobId\", \"JobDate\": \"$JobDate\"}"
-
-BaselineJsonFile=/tmp/Baseline.json
-jq -r -n	 --argjson JobInfo "$JobJson"							\
-		 --argjson Baseline "$BaselineJson"						\
-		 --argjson BaselineT1 "$BaselineT1Json"						\
-  		 --argjson BaselineT2 "$BaselineT2Json"						\
-      		 --argjson BaselineT1LeftSegmentation "$BaselineT1LeftSegmentationJson" 	\
-      		 --argjson BaselineT1RightSegmentation "$BaselineT1RightSegmentationJson" 	\
-      		 --argjson BaselineT2LeftSegmentation "$BaselineT2LeftSegmentationJson" 	\
-      		 --argjson BaselineT2RightSegmentation "$BaselineT2RightSegmentationJson" 	\
-      		   '    { "JobInfo": $JobInfo} + {"Baseline": (
-		   	       $Baseline 
-			       + {
-			          "T1": $BaselineT1
- 			        , "T2": $BaselineT2
- 			        , "T1LeftSegmentation": $BaselineT1LeftSegmentation
- 			        , "T1RightSegmentation": $BaselineT1RightSegmentation
- 			        , "T2LeftSegmentation": $BaselineT2LeftSegmentation
- 			        , "T2RightSegmentation": $BaselineT2RightSegmentation
-			          })
- 			 }' > "$BaselineJsonFile"
-
-
-FollowupsJsonFile=/tmp/followups.json
-for FollowupSessionId in $(jq -r '.Followups[] | .SessionId' "$SortedSessionsJsonFile")
-do
-	FollowupSessionJsonFile=/tmp/FollowupSession.json
-	jq -r '..|select(._id == "'"$FollowupSessionId"'")?' "$SubjectJsonFile" > "$FollowupSessionJsonFile"
-	FollowupJson=$(jq -r -L "$FwLibDir" 'include "FwLib"; ..|select(._id == "'"$FollowupSessionId"'")? | ({"SessionId": ._id, "SessionLabel": .label, "SessionScanDateTime": sessionScanDateTime(.)})' "$SubjectJsonFile")
-	# *** should probably verify we have something
-	[ -n "$opt_v" ] && echo "$FollowupSessionLabel" 1>&2
-
-	FollowupSessionLabel=$(echo "$FollowupSessionJson" | jq -r '.SessionLabel')
-	# *** should probably verify we have something
-	[ -n "$opt_v" ] && echo "$FollowupSessionLabel" 1>&2
-
-	FollowupT1Json=$(jq -r --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile")
-	if [ -z "$FollowupT1Json" ] || [ "$FollowupT1Json" == "null" ]
-	then
-		echo "${CmdName} : followup session '$FollowupSessionLabel' ($FollowupSessionId) missing T1 acquisition.  Skipping." 1>&2
-		FollowupT1Json='{"Missing": true}'
-	fi
-
-	FollowupT2Json=$(jq -r --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile")
-	if [ -z "$FollowupT2Json" ] || [ "$FollowupT2Json" == "null" ]
-	then
-		echo "${CmdName} : followup session '$FollowupSessionLabel' ($FollowupSessionId) missing T2 acquisition.  Skipping." 1>&2
-		FollowupT2Json='{"Missing": true}'
-
-	fi
-
-	jq -r -n --argjson Followup "$FollowupJson"				\
-	      	 --argjson FollowupT1 "$FollowupT1Json"				\
-	         --argjson FollowupT2 "$FollowupT2Json"				\
-		 '$Followup + {"T1": $FollowupT1, "T2": $FollowupT2}'
-done | jq -s '{"Followups": . }' > "$FollowupsJsonFile"
-
-jq -r -n --slurpfile Baseline "$BaselineJsonFile" --slurpfile Followups "$FollowupsJsonFile" '($Baseline[]) + ($Followups[])'
+jq -r -f alohaSessionReport.jq /tmp/aloharun.json | jq -f alohaFlattenDict.jq | jq -s -r '(.[0] | keys_unsorted) as $keys | $keys, map([.[ $keys[] ]])[] | @csv'

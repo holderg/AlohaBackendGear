@@ -1,9 +1,9 @@
 #
-# fwfind -1 -j -rgz session=66e4737ead8f9c0ea1ce2750 | jq -r --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq
+# fwfind -1 -j -rgz session=66e4737ead8f9c0ea1ce2750 | jq -s -r --argjson AlohaArgFlag '"-r"' --argjson Atlas '"ASHS-PMC-T1"' --argjson Handedness '"Left"' -f alohaFindSegmentFiles.jq
 #
 [
-	.[]
-    |   select( (.state == "complete") and ((.outputs | length) > 0) )
+       .[]
+    |  select( (.state == "complete") and ((.outputs | length) > 0) )
     | .created as $AnalysisCreatedTimestamp
     | .destination.id as $AnalysisId
     | .detail.parent_info.analysis.label as $AnalysisLabel
@@ -34,6 +34,7 @@
 	, "AnalysisLabel": $AnalysisLabel
 	, "AnalysisId": $AnalysisId
 	, "AnalysisTimestamp": $AnalysisCreatedTimestamp
+	, "AlohaArgFlag": $AlohaArgFlag
       }
-      ]
+]
  | sort_by(.FileTimestamp) | last

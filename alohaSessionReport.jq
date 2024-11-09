@@ -1,98 +1,62 @@
 
 def mriInfo(m): (
     if (m.Missing == true) then 
-
-             "Missing"
-           , "Missing"
-           , "Missing"
-           , "Missing"
-
+       {
+             "AcquisitionLabel": "Missing"
+           , "AcquisitionId": "Missing"
+           , "FileName": "Missing"
+           , "FileId": "Missing"
+       }
     else
-
-            m.AcquisitionLabel
-         ,  m.AcquisitionId
-    	 ,  m.FileName
-    	 ,  m.FileId
-
+       {
+            "AcquisitionLabel": m.AcquisitionLabel
+         ,  "AcquisitionId": m.AcquisitionId
+    	 ,  "FileName": m.FileName
+    	 ,  "FileId": m.FileId
+       }
     end
 );
 
 def segAnalysisInfo(m): (
-            m.AnalysisLabel
-    	  , m.AnalysisId
+    {
+            "AnalysisLabel": m.AnalysisLabel
+    	  , "AnalysisId": m.AnalysisId
+	  , "AnalysisTimestamp": m.AnalysisTimestamp
+    }
 );
 
 def segInfo(m): (
-
-    	    m.FileName
-    	  , m.FileId
-
+    {
+    	    "FileName": m.FileName
+    	  , "FileId": m.FileId
+    }
 );
 
 def baselineSessionInfo(s): (
-
-            s.SessionLabel
-	  , s.SessionId
-	  , s.SessionScanDateTime
-	  , mriInfo(s.T1)
-	  , mriInfo(s.T2)
-	  , segAnalysisInfo(s.T1LeftSegmentation)
-	  , segInfo(s.T1LeftSegmentation)
-	  , segInfo(s.T1RightSegmentation)
-	  , segAnalysisInfo(s.T2LeftSegmentation)
-	  , segInfo(s.T2LeftSegmentation)
-	  , segInfo(s.T2RightSegmentation)
-
+    {
+            "SessionLabel": s.SessionLabel
+	  , "SessionId": s.SessionId
+	  , "SessionScanDateTime": s.SessionScanDateTime
+	  , "T1": mriInfo(s.T1)
+	  , "T2": mriInfo(s.T2)
+	  , "T1Analysis": segAnalysisInfo(s.T1LeftSegmentation)
+	  , "T1LeftSegmentation": segInfo(s.T1LeftSegmentation)
+	  , "T1RightSegmentation": segInfo(s.T1RightSegmentation)
+	  , "T2Anlysis": segAnalysisInfo(s.T2LeftSegmentation)
+	  , "T2LeftSegmentation": segInfo(s.T2LeftSegmentation)
+	  , "T2RightSegmentation": segInfo(s.T2RightSegmentation)
+    }
 );
 
 def followupSessionInfo(s): (
-
-        s.SessionLabel
-      , s.SessionId
-      , s.SessionScanDateTime
-      , mriInfo(s.T1)
-      , mriInfo(s.T2)
-
+    {
+        "SessionLabel": s.SessionLabel
+      , "SessionId": s.SessionId
+      , "SessionScanDateTime": s.SessionScanDateTime
+      , "T1": mriInfo(s.T1)
+      , "T2": mriInfo(s.T2)
+    }
 );
 
-if ($Headers) then
-   [
-   	"BaselineSessionLabel"
-      , "BaselineSessionId"
-      , "BaselineSessionScanDateTime"
-      , "BaselineT1AcquisitionLabel"
-      , "BaselineT1AcquisitionId"
-      , "BaselineT1FileName"
-      , "BaselineT1FileId"
-      , "BaselineT2AcquisitionLabel"
-      , "BaselineT2AcquisitionId"
-      , "BaselineT2FileName"
-      , "BaselineT2FileId"
-      , "BaselineT1AnalysisLabel"
-      , "BaselineT1AnalysisId"
-      , "BaselineT1LeftSegmentationFileName"
-      , "BaselineT1LeftSegmentationFileId"
-      , "BaselineT1RightSegmentationFileName"
-      , "BaselineT1RightSegmentationFileId"
-      , "BaselineT2AnalysisLabel"
-      , "BaselineT2AnalysisId"
-      , "BaselineT2LeftSegmentationFileName"
-      , "BaselineT2LeftSegmentationFileId"
-      , "BaselineT2RightSegmentationFileName"
-      , "BaselineT2RightSegmentationFileId"
-      , "FollowupSessionLabel"
-      , "FollowupSessionId"
-      , "FollowupSessionScanDateTime"
-      , "FollowupT1AcquisitionLabel"
-      , "FollowupT1AcquisitionId"
-      , "FollowupT1FileName"
-      , "FollowupT1FileId"
-      , "FollowupT2AcquisitionLabel"
-      , "FollowupT2AcquisitionId"
-      , "FollowupT2FileName"
-      , "FollowupT2FileId"
-  ] | @csv
-else
-    [ baselineSessionInfo(.Baseline) ] as $BaselineInfo
-  | .Followups[] | ($BaselineInfo + [ followupSessionInfo(.) ])  | @csv
-end
+    baselineSessionInfo(.Baseline) as $BaselineInfo
+  | .Followups[] | { "Baseline": $BaselineInfo, "Followup": followupSessionInfo(.) }

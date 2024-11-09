@@ -13,19 +13,20 @@ function sys {
 #                usage:
 #                  aloha_main [options]
 # 
-#                required options:
+#                baseline options:
 #                  -b image          Filename of baseline 3D gradient echo MRI (ALOHA_BL_MPRAGE, T1w)
-#                  -f image          Filename of followup 3D gradient echo MRI (ALOHA_FU_MPRAGE, T1w)
-#                  -r image          Filename of left hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_LEFT)
-#                  -s image          Filename of right hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_RIGHT)
-#                  -w path           Working/output directory
-# 
-#                optional:
-#                                    The following three arguments are required for subfield atrophy rates using T2w MRI 
 #                  -c image          Filename of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE, T2w)
-#                  -g image          Filename of followup 2D focal fast spin echo MRI  (ALOHA_FU_TSE, T2w)
+#                  -r image          Filename of left hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG#                  -s image          Filename of right hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_RIGHT)
 #                  -t image          Filename of left subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSESEG_LEFT)
 #                  -u image          Filename of right subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSESEG_RIGHT)
+_LEFT)
+#                followup
+#                  -f image          Filename of followup 3D gradient echo MRI (ALOHA_FU_MPRAGE, T1w)
+#                  -g image          Filename of followup 2D focal fast spin echo MRI  (ALOHA_FU_TSE, T2w)
+
+#                  -w path           Working/output directory
+# 
+
 #                  -m list           Define label map over which measurements are desired. Format is Label1:ROI1,ROI2;Label2:ROI1;Label2:ROI1,ROI2,ROI4;. 
 #                  -l list           Define the names of labels in the label map described with the -m option. Format is Label1,Label2,Label3
 #                  

@@ -1,5 +1,5 @@
 #
-# fwget -1  -ra 66e4737ead8f9c0ea1ce2750 | jq -r --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq
+# fwget -1  -ra 66e4737ead8f9c0ea1ce2750 | jq -r --argjson AlohaArgFlag '"b"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq
 #
 
       .created as $SessionCreated
@@ -30,6 +30,7 @@
 	   , "AcquisitionLabel": $AcquisitionLabel
 	   , "AcquisitionId": $AcquisitionId
 	   , "AcquistionTimestamp": $AcquisitionTimestamp
+	   , "AlohaArgFlag": $AlohaArgFlag
 #           , "SessionCreated":  $SessionCreated
 #	   , "SessionId": .parents.session
        }] | sort_by(.FileCreated, .FileTags) | last
