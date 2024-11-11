@@ -11,13 +11,28 @@ ENV PYTHONPATH=${FLYWHEEL}/flywheel/lib
 RUN apt update
 RUN apt full-upgrade -y
 RUN apt install -y libopenblas-dev bc libxt6 jq csvkit
-RUN cd ${FLYWHEEL}; git clone https://github.com/brainsciencecenter/flywheel.git; cd flywheel; git pull
 
-COPY run requirements.txt config.test.json ${FLYWHEEL}/
-
-COPY alohaGenJson alohaDownloadInputFiles alohaVerifyInputs alohaUploadAndTagOutputs /usr/local/bin/
-
+COPY requirements.txt ${FLYWHEEL}/
 RUN pip install -r requirements.txt
+
+COPY run config.test.json ${FLYWHEEL}/ 
+COPY 	alohaDriver				\
+	alohaGenJson				\
+	alohaDownloadInputFiles			\
+	alohaVerifyInputs			\
+	alohaUploadAndTagOutputs		\
+						\
+	/usr/local/bin/
+
+COPY	alohaFindSegmentFiles.jq		\
+	alohaFindT1T2.jq			\
+	alohaFlattenDict.jq			\
+	alohaSessionReport.jq			\
+	alohaSortSessions.jq			\
+						\
+	${FLYWHEEL}/
+
+RUN cd ${FLYWHEEL}; git clone https://github.com/brainsciencecenter/flywheel.git; cd flywheel; git config pull.rebase false; git pull
 
 RUN chmod +x run
 ENTRYPOINT ["./run"]
