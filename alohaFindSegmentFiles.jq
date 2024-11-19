@@ -4,7 +4,8 @@
 [
        .[]
     |  select( (.state == "complete") and ((.outputs | length) > 0) )
-    | .created as $AnalysisCreatedTimestamp
+    | ._id as $JobId
+    | .created as $JobCreated
     | .destination.id as $AnalysisId
     | .detail.parent_info.analysis.label as $AnalysisLabel
     | .detail.parent_info.group.label as $GroupLabel
@@ -31,10 +32,11 @@
 #	, "project": $ProjectLabel
 #	, "subject": $SubjectLabel
 #	, "session": $SessionLabel
+	, "JobId": $JobId
+	, "JobCreated": $JobCreated
 	, "AnalysisLabel": $AnalysisLabel
 	, "AnalysisId": $AnalysisId
-	, "AnalysisTimestamp": $AnalysisCreatedTimestamp
 	, "AlohaArgFlag": $AlohaArgFlag
       }
 ]
- | sort_by(.FileTimestamp) | last
+ | sort_by(.JobCreated)[]

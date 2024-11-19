@@ -13,20 +13,18 @@
    | select((.files | length) > 0)
    | .files[]
    | select(
-	     # Only want the original scan -- dicom or archive. nifti is a derived image
-             ((.type == "archive") or (.type == "dicom") )
-	 and (.modality == "MR")
+	     # Leaving out type selection as it is too hard to allow multiples
+	     (.modality == "MR")
          and (.classification.Intent | any("Structural"))
          and (.classification.Measurement | any(. == $ClassificationMeasurement))
          and ((.tags | length) > 0)
 	 and (.tags | any(. == "AlohaInput"))
-#         and (.tags | any(. == "Trimmed"))
      ) 
      | {
 	     "FileName": .name
 	   , "FileId": .file_id
 	   , "FileType": .type
-	   , "FileTags": (.tags | sort | join(":"))
+	   , "FileTags": (.tags | sort )
 	   , "FileModality": .modality
 	   , "FileClassification": (.classification.Measurement|join(":"))
 	   , "FileTimestamp": .created
@@ -34,8 +32,6 @@
 	   , "AcquisitionId": $AcquisitionId
 	   , "AcquistionTimestamp": $AcquisitionTimestamp
 	   , "AlohaArgFlag": $AlohaArgFlag
-#           , "SessionCreated":  $SessionCreated
-#	   , "SessionId": .parents.session
        }] | sort_by(.FileCreated, .FileType, .FileTags)[]
        #| last
      
