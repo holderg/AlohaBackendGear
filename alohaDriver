@@ -79,6 +79,9 @@ Group=$(jq -r '.parents.group' "$SubjectJsonFile")
 ProjectId=$(jq -r '.parents.project' "$SubjectJsonFile")
 ProjectLabel=$(fwget -1 "$ProjectId" | jq -r '.label')
 GearTags='extra-large'
+FollowupDir="${TmpDir}/Followups"
+BaselineJsonFile="${TmpDir}/Baseline.json"
+
 
 # *** should probbaly move all the intermediate file generation to the run portion of the driver
 
@@ -293,7 +296,6 @@ then
     
     JobJson="{\"JobLabel\": \"$JobLabel\", \"JobId\": \"$JobId\", \"JobDate\": \"$JobDate\"}"
     
-    BaselineJsonFile="${TmpDir}/Baseline.json"
     jq -r -n	 --argjson JobInfo "$JobJson"							\
     		 --argjson Baseline "$BaselineJson"						\
     		 --argjson BaselineT1 "$BaselineT1NiftiTrimmedJson"				\
@@ -435,10 +437,6 @@ then
 
 fi
 
-exit
-
-FollowupDir="${TmpDir}/Followups"
-
 if [ -n "$opt_a" ]
 then
     AlohaInputsJsonFilename=$(basename "$AlohaInputsJsonFile")
@@ -446,16 +444,10 @@ then
     sys fwget -v -f --download --download-dir "$TmpDir" "$AlohaInputsJsonFileId"
 fi
 
-BaselineJsonFile="${TmpDir}/Baseline.json"
-if [ -e "$AlohaInputsJsonFile" ] && [ -s "$AlohaInputsJsonFile" ]
-then
-    jq -r '.Baseline' "$AlohaInputsJsonFile" > "$BaselineJsonFile"
-fi
-
 DownloadedAllFiles=true
 if [ -n "$opt_d" ]
 then
-    for FileId in $(jq -r '..|.FileId? | select(.)' $BaselineJsonFile)
+    for FileId in $(jq -r '.Baseline | ..|.FileId? | select(.)' $AlohaInputsJsonFile)
     do
         sys fwget -v -f --download --download-dir "$BaselineDir" "$FileId"
         if [ "$?" != 0 ]
