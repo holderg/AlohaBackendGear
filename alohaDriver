@@ -186,6 +186,7 @@ then
 	    fi
 	fi
     fi
+    BaselineT1NiftiTrimmedFileId=$(echo "$BaselineT1NiftiTrimmedJson" | jq -r '.FileId')
 
     BaselineT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ')
     if [ -z "$BaselineT2NiftiJson" ] || [ "$BaselineT2NiftJson" = "null" ] || (echo "$opt_f" | grep -q BaselineT2Nifti)
@@ -221,21 +222,29 @@ then
 	    BaselineT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ')
 	fi
     fi
+    BaselineT2NiftiFileId=$(echo "$BaselineT2NiftiJson" | jq -r '.FileId')
 
     BaselineAshsPmcT1JobId=$( jq  -s -r '[ .[] | select( (.gear_info.name == "ashs") and (.detail.state == "complete") and (.config.config.ASHS_Atlases == "ASHS-PMC-T1") ) ] | sort_by(.created) | last | ._id' "$BaselineJobsJsonFile")
-    if [ -z "$BaselineAshsPmcT1JobId" ] || [ "$BaselineAshsPmcT1JobId" = "null" ] || (echo "$opt_f" | grep -q BaselineAshsPmcT1Gear)
+    if [ -z "$BaselineAshsPmcT1JobId" ] || [ "$BaselineAshsPmcT1JobId" = "null" ] || (echo "$opt_f" | grep -q BaselineAshsPmcT1)
     then
 	if (echo "$opt_f" | grep -q AshsPmcT1Gear)
 	then
-	    echo Faking fwRunGear -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T1"}' 1>&2
+	    echo Faking fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T1"}' 1>&2
 	else
-	    BaselineAshsPmcT1JobId=$(fwRunGear -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T1"}')
+	    BaselineAshsPmcT1JobId=$(fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T1"}')
     	    if [ "$?" != 0 ]
     	    then
-    		echo "${CmdName} : fwRunGear failed fwRunGear -g ashs -i T1w '$BaselineT1NiftiTrimmedFileId' -c '{ASHS_Atlases: ASHS-PMC-T1}'" 1>&2
+    		echo "${CmdName} : fwRunGear failed fwRunGear -w -t "$GearTags" -g ashs -i T1w '$BaselineT1NiftiTrimmedFileId' -c '{ASHS_Atlases: ASHS-PMC-T1}'" 1>&2
     		exit 1
     	    fi
 
+	    sys fwfind -1 -j -r session="$BaselineSessionId" > "$BaselineJobsJsonTmpFile"
+    	    if [ "$?" != 0 ]
+    	    then
+    		echo "${CmdName} : fwfind failed finding jobs for '$BaselineSessionLabel' ($BaselineSessionId)" 1>&2
+    		exit 1
+    	    fi
+	    [ -s "$BaselineJobsJsonTmpFile" ] && mv "$BaselineJobsJsonTmpFile" "$BaselineJobsJsonFile"
 	fi
     fi
 
@@ -258,18 +267,27 @@ then
     # Find the last ASHS PMC-T2 run on this session, and grab the JobId.
     #
     BaselineAshsPmcT2JobId=$(jq  -s -r '[ .[] | select( (.gear_info.name == "ashs") and (.detail.state == "complete") and (.config.config.ASHS_Atlases == "ASHS-PMC-T2") ) ] | sort_by(.created) | last | ._id' "$BaselineJobsJsonFile")
-    if [ -z "$BaselineAshsPmcT2JobId" ] || (echo "$opt_f" | grep -q BaselineAshsPmcT2Gear)
+    if [ -z "$BaselineAshsPmcT2JobId" ] || (echo "$opt_f" | grep -q BaselineAshsPmcT2)
     then
 	if (echo "$opt_f" | grep -q BaselineAshsPmcT2Gear)
 	then
-	    echo Faking fwRunGear -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -i T2w "$BaselineT2NiftiFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T2"}' 1>&2
+	    echo Faking fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -i T2w "$BaselineT2NiftiFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T2"}' 1>&2
 	else
-	    BaselineAshsPmcT2JobId=$(fwRunGear -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -i T2w "$BaselineT2NiftiFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T2"}')
+
+	    BaselineAshsPmcT2JobId=$(fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -i T2w "$BaselineT2NiftiFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T2"}')
     	    if [ "$?" != 0 ]
     	    then
-    		echo "${CmdName} : fwRunGear failed fwRunGear -g ashs -i T1w '$BaselineT1NiftiTrimmedFileId' -i T2w "$BaselineT2NiftiFileId" -c '{ASHS_Atlases: ASHS-PMC-T2}'" 1>&2
+    		echo "${CmdName} : fwRunGear failed fwRunGear -w -t "$GearTags" -g ashs -i T1w '$BaselineT1NiftiTrimmedFileId' -i T2w "$BaselineT2NiftiFileId" -c '{ASHS_Atlases: ASHS-PMC-T2}'" 1>&2
     		exit 1
     	    fi
+
+	    sys fwfind -1 -j -r session="$BaselineSessionId" > "$BaselineJobsJsonTmpFile"
+    	    if [ "$?" != 0 ]
+    	    then
+    		echo "${CmdName} : fwfind failed finding jobs for '$BaselineSessionLabel' ($BaselineSessionId)" 1>&2
+    		exit 1
+    	    fi
+	    [ -s "$BaselineJobsJsonTmpFile" ] && mv "$BaselineJobsJsonTmpFile" "$BaselineJobsJsonFile"
 	fi
     fi
     
