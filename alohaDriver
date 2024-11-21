@@ -20,10 +20,17 @@
 # -a download AlohaInputs.json from the flywheel subject container 
 # -d download input files
 # -f Comma separated list of portions json collection to fake
-#    BaselineT1Dicom,BaselineT1Nifti,BaselineT1Trimmed,BaselineT2Dicom,BaselineT2Nifti
-#    BaselineAshsPmcT1,BaselineAshsPmcT2
-#    FollowupT1Dicom,FollowupT1Nifti,FollowupT1NiftiTrimmed
-#    FollowupT2Dicom,FollowupT2Nifti
+#    IgnoreBaselineT1NiftiTrimmedJson|IgnoreBaselineT1DicomJson|IgnoreBaselineT2NiftiJson|IgnoreBaselineT2DicomJson
+#    IgnoreBaselineT1LeftSegmentationJson|IgnoreBaselineT1RightSegmentationJson
+#    IgnoreBaselineAshsPmcT2JobId|IgnoreBaselineT2LeftSegmentationJson|IgnoreBaselineT2RightSegmentationJson
+#    RunBaselineT1Dcm2NiixGear|RunBaselineT1NecktrimGear|RunBaselineT2Dcm2NiixGear|RunAshsPmcT1Gear|RunBaselineAshsPmcT2Gear
+#
+#    IgnoreFollowupT1NiftiTrimmedJson|IgnoreFollowupT1DicomJson|IgnoreFollowupT2NiftiJson|IgnoreFollowupT2DicomJson
+#    RunFollowupT1Dcm2NiixGear|RunFollowupT1NecktrimGear|RunFollowupT2Dcm2NiixGear
+#    In order to run the BaselineT1NiftiNecktrimGear, you will have to ignore the BaselineT1NiftiTrimmedJson if there is any
+#
+#        alohaDriver -f IgnoreBaselineT1NiftiTrimmedJson,RunBaselineT1Dcm2NiixGear -o stdout 66e4737e1b4b58bc3236d61d 
+#
 # -n no-op
 # -o [site|stdout|none]
 #     create AlohaInputs.json and upload it to the flywheel site, print to stdout, neither
@@ -135,19 +142,16 @@ then
     #
 
     BaselineT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ')
-    if [ -z "$BaselineT1NiftiTrimmedJson" ] || [ "$BaselineT1NiftiTrimmedJson" = "null" ] || (echo "$opt_f" | grep -q BaselineT1NiftiTrimmed)
+    if [ -z "$BaselineT1NiftiTrimmedJson" ] || [ "$BaselineT1NiftiTrimmedJson" = "null" ] || (echo "$opt_f" | grep -q -E 'IgnoreBaselineT1NiftiTrimmedJson|RunBaselineT1Dcm2NiixGear|RunBaselineT1NecktrimGear')
     then
     	BaselineT1DicomJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ')
-	if [ -z "$BaselineT1DicomJson" ] || (echo "$opt_f" | grep -q BaselineT1Dicom)
+	if [ -z "$BaselineT1DicomJson" ] || (echo "$opt_f" | grep -q -E 'IgnoreBaselineT1DicomJson|RunBaselineT1Dcm2NiixGear|RunBaselineT1NecktrimGear')
 	then
 	    echo "${CmdName} : Missing Baseline T1 for ${BaselineSessionLabel}(${BaselineSessionId}). Skipping" 1>&2
 	    BaselineT1NiftiJson='{ "Missing": true }'
 	else
-	    if (echo "$opt_f" | grep -q "BaselineT1Dcm2NiixGear")
+	    if (echo "$opt_f" | grep -q 'RunBaselineT1Dcm2NiixGear')
 	    then
-		echo Faking fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$BaselineT1DicomFileId" 1>&2
-		BaselineT1NfitiFileId=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and ((.FileTags | any(. == "Trimmed")) | not) )' | jq -r '.FileId')
-	    else
 		BaselineT1DicomFileId=$(echo "$BaselineT1DicomJson" | jq -r '.FileId')
 		BaselineT1Dicom2NiftiJobId=$(sys fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$BaselineT1DicomFileId")
     		if [ "$?" != 0 ]
@@ -160,14 +164,15 @@ then
 
 		BaselineT1DicomTags=$(fwTag "$BaselineT1DicomFileId")
 		[ -n "$BaselineT1DicomTags" ] && sys fwTag -q -t "$BaselineT1DicomTags" "$BaselineT1NiftiFileId"
+	    else
+		BaselineT1DicomFileId=$(echo "$BaselineT1DicomJson" | jq -r '.FileId')
+		echo Faking fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$BaselineT1DicomFileId" 1>&2
 
+		BaselineT1NiftiFileId=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and ((.FileTags | any(. == "Trimmed")) | not) )' | jq -r '.FileId')
 	    fi
 
-	    if (echo "$opt_f" | grep -q "BaselineT1NecktrimGear")
+	    if (echo "$opt_f" | grep -q 'RunBaselineT1NecktrimGear')
 	    then
-		echo Faking fwRunGear -w -t "$GearTags" -g 'necktrim' -i 'file' "$BaselineT1NiftiFileId" 1>&2
-		BaselineT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ')
-	    else
 		BaselineT1NecktrimJobId=$(sys fwRunGear -w -t "$GearTags" -g 'necktrim' -i 'file' "$BaselineT1NiftiFileId")
     		if [ "$?" != 0 ]
     		then
@@ -180,28 +185,26 @@ then
 		BaselineT1NiftiTags=$(fwTag "$BaselineT1NiftiTrimmedFileId")
 		[ -n "$BaselineT1NiftiTags" ] && sys fwTag -q -t "$BaselineT1NiftiTags" "$BaselineT1NiftiTrimmedFileId"
 		
-		sys fwget -1 -raGz "$BaselineSessionId" > "$BaselineSessionJsonFile"
-
+		BaselineT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ')
+	    else
+		echo Faking fwRunGear -w -t "$GearTags" -g 'necktrim' -i 'file' "$BaselineT1NiftiFileId" 1>&2
 		BaselineT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ')
 	    fi
 	fi
     fi
     BaselineT1NiftiTrimmedFileId=$(echo "$BaselineT1NiftiTrimmedJson" | jq -r '.FileId')
 
-    BaselineT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ')
-    if [ -z "$BaselineT2NiftiJson" ] || [ "$BaselineT2NiftJson" = "null" ] || (echo "$opt_f" | grep -q BaselineT2Nifti)
+    BaselineT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -s -r '[sort_by(.FileTimestamp) | .[] | select( .FileType == "nifti" ) ] | last' )
+    if [ -z "$BaselineT2NiftiJson" ] || [ "$BaselineT2NiftiJson" = "null" ] || (echo "$opt_f" | grep -q -E 'IgnoreBaselineT2NiftiJson|RunBaselineT2Dcm2NiixGear')
     then
     	BaselineT2DicomJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ')
-	if [ -z "$BaselineT2DicomJson" ] || (echo "$opt_f" | grep -q BaselineT2Dicom)
+	if [ -z "$BaselineT2DicomJson" ] || (echo "$opt_f" | grep -q IgnoreBaselineT2DicomJson)
 	then
 	    echo "${CmdName} : Missing Baseline T2 for ${BaselineSessionLabel}(${BaselineSessionId}). Skipping" 1>&2
 	    BaselineT2NiftiJson='{ "Missing": true }'
 	else
-	    if (echo "$opt_f" | grep -q "BaselineT2Dcm2NiixGear")
+	    if (echo "$opt_f" | grep -q 'RunBaselineT2Dcm2NiixGear')
 	    then
-		BaselineT2DicomFileId=$(echo "$BaselineT2DicomJson" | jq -r .'FileId')
-		echo fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$BaselineT2DicomFileId" 1>&2
-	    else
 		BaselineT2DicomFileId=$(echo "$BaselineT2DicomJson" | jq -r '.FileId')
 		BaselineT2Dicom2NiftiJobId=$(sys fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$BaselineT2DicomFileId")
     		if [ "$?" != 0 ]
@@ -215,22 +218,21 @@ then
 		BaselineT2DicomTags=$(fwTag "$BaselineT2DicomFileId")
 
 		[ -n "$BaselineT2DicomTags" ] && sys fwTag -q -t "$BaselineT2DicomTags" "$BaselineT2NiftiFileId"
-
-		sys fwget -1 -raGz "$BaselineSessionId" > "$BaselineSessionJsonFile"
+	    else
+		BaselineT2DicomFileId=$(echo "$BaselineT2DicomJson" | jq -r .'FileId')
+		echo Faking fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$BaselineT2DicomFileId" 1>&2
 	    fi
 
-	    BaselineT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ')
+	    BaselineT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last')
 	fi
     fi
     BaselineT2NiftiFileId=$(echo "$BaselineT2NiftiJson" | jq -r '.FileId')
 
     BaselineAshsPmcT1JobId=$( jq  -s -r '[ .[] | select( (.gear_info.name == "ashs") and (.detail.state == "complete") and (.config.config.ASHS_Atlases == "ASHS-PMC-T1") ) ] | sort_by(.created) | last | ._id' "$BaselineJobsJsonFile")
-    if [ -z "$BaselineAshsPmcT1JobId" ] || [ "$BaselineAshsPmcT1JobId" = "null" ] || (echo "$opt_f" | grep -q BaselineAshsPmcT1)
+    if [ -z "$BaselineAshsPmcT1JobId" ] || [ "$BaselineAshsPmcT1JobId" = "null" ] || (echo "$opt_f" | grep -q -E 'IgnoreBaselineAshsPmcT1JobId|RunAshsPmcT1Gear')
     then
-	if (echo "$opt_f" | grep -q AshsPmcT1Gear)
+	if (echo "$opt_f" | grep -q 'RunAshsPmcT1Gear')
 	then
-	    echo Faking fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T1"}' 1>&2
-	else
 	    BaselineAshsPmcT1JobId=$(fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T1"}')
     	    if [ "$?" != 0 ]
     	    then
@@ -245,19 +247,21 @@ then
     		exit 1
     	    fi
 	    [ -s "$BaselineJobsJsonTmpFile" ] && mv "$BaselineJobsJsonTmpFile" "$BaselineJobsJsonFile"
+	else
+	    echo Faking fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T1"}' 1>&2
 	fi
     fi
 
     BaselineT1LeftSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT1JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-r"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Left"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )
 
-    if [ -z "$BaselineT1LeftSegmentationJson" ] || [ "$BaselineTLeftSegmentationJson" = "null" ]
+    if [ -z "$BaselineT1LeftSegmentationJson" ] || [ "$BaselineTLeftSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT1LeftSegmentationJson')
     then
     	echo "${CmdName} : Missing baseline T1 Left Segmentation" 1>&2
 	BaselineT1LeftSegmentationJson='{ "Missing": true }'
     fi
 
     BaselineT1RightSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT1JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-s"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Right"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )
-    if [ -z "$BaselineT1RightSegmentationJson" ] || [ "$BaselineT1RightSegmentationJson" = "null" ]
+    if [ -z "$BaselineT1RightSegmentationJson" ] || [ "$BaselineT1RightSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT1RightSegmentationJson')
     then
     	echo "${CmdName} : Missing baseline T1 Right Segmentation" 1>&2
 	BaselineT1RightSegmentationJson='{ "Missing": true }'
@@ -267,13 +271,10 @@ then
     # Find the last ASHS PMC-T2 run on this session, and grab the JobId.
     #
     BaselineAshsPmcT2JobId=$(jq  -s -r '[ .[] | select( (.gear_info.name == "ashs") and (.detail.state == "complete") and (.config.config.ASHS_Atlases == "ASHS-PMC-T2") ) ] | sort_by(.created) | last | ._id' "$BaselineJobsJsonFile")
-    if [ -z "$BaselineAshsPmcT2JobId" ] || (echo "$opt_f" | grep -q BaselineAshsPmcT2)
+    if [ -z "$BaselineAshsPmcT2JobId" ] || (echo "$opt_f" | grep -q -E 'IgnoreBaselineAshsPmcT2JobId|RunBaselineAshsPmcT2Gear' )
     then
-	if (echo "$opt_f" | grep -q BaselineAshsPmcT2Gear)
+	if (echo "$opt_f" | grep -q 'RunBaselineAshsPmcT2Gear')
 	then
-	    echo Faking fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -i T2w "$BaselineT2NiftiFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T2"}' 1>&2
-	else
-
 	    BaselineAshsPmcT2JobId=$(fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -i T2w "$BaselineT2NiftiFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T2"}')
     	    if [ "$?" != 0 ]
     	    then
@@ -288,18 +289,20 @@ then
     		exit 1
     	    fi
 	    [ -s "$BaselineJobsJsonTmpFile" ] && mv "$BaselineJobsJsonTmpFile" "$BaselineJobsJsonFile"
+	else
+	    echo Faking fwRunGear -w -t "$GearTags" -g ashs -i T1w "$BaselineT1NiftiTrimmedFileId" -i T2w "$BaselineT2NiftiFileId" -c '{"ASHS_Atlases": "ASHS-PMC-T2"}' 1>&2
 	fi
     fi
     
     BaselineT2LeftSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT2JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-t"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Left"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )
-    if [ -z "$BaselineT2LeftSegmentationJson" ] || [ "$BaselineT2LeftSegmentationJson" = "null" ]
+    if [ -z "$BaselineT2LeftSegmentationJson" ] || [ "$BaselineT2LeftSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT2LeftSegmentationJson')
     then
     	echo "${CmdName} : Missing baseline T2 Left Segmentation" 1>&2
     	BaselineT2LeftSegmentationJson='{ "Missing": true }'
     fi
 
     BaselineT2RightSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT2JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-u"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Right"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )    
-    if [ -z "$BaselineT2RightSegmentationJson" ] || [ "$BaselineT2RightSegmentationJson" = "null" ]
+    if [ -z "$BaselineT2RightSegmentationJson" ] || [ "$BaselineT2RightSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT2RightSegmentationJson')
     then
     	echo "${CmdName} : Missing baseline T2 Right Segmentation" 1>&2
     	BaselineT2RightSegmentationJson='{ "Missing": true }'
@@ -359,37 +362,46 @@ then
     	FollowupSessionLabel=$(echo "$FollowupJson" | jq -r '.SessionLabel')
         [ -n "$opt_v" ] && echo "FollowupSession = '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
     
-    	FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ')
-	if [ -z "$FollowupT1NiftiTrimmedJson" ]
+    	FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
+	if [ -z "$FollowupT1NiftiTrimmedJson" ] || (echo "$opt_f" | grep -q -E 'IgnoreFollowupT1NiftiTrimmedJson|RunFollowupT1Dcm2NiixGear|RunFollowupT1NecktrimGear')
 	then
-    	    FollowupT1DicomJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ')
-	    if [ -z "$FollowupT1DicomJson" ]
+    	    FollowupT1DicomJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
+	    if [ -z "$FollowupT1DicomJson" ] || (echo "$opt_f" | grep -q 'IgnoreFollowupT1DicomJson')
 	    then
 		echo "${CmdName} : Missing Followup T1 for ${FollowupSessionLabel}(${FollowupSessionId}). Skipping" 1>&2
 		FollowupT1NiftiJson='{ "Missing": true }'
 	    else
-		FollowupT1DicomFileId=$(echo "$FollowupT1DicomJson" | jq -r '.FileId')
-		FollowupT1Dicom2NiftiJobId=$(sys fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$FollowupT1DicomFileId")
-    		if [ "$?" != 0 ]
-    		then
-    		    echo "${CmdName} : fwRunGear failed fwRunGear -w -t '$GearTags' -g dcm2niix -i dcm2niix_input '$FollowupT1DicomFileId'" 1>&2
-    		    exit 1
-    		fi
+		if (echo "$opt_f" | grep -q 'RunFollowupT1Dcm2NiixGear')
+		then
+		    FollowupT1DicomFileId=$(echo "$FollowupT1DicomJson" | jq -r '.FileId')
+		    FollowupT1Dicom2NiftiJobId=$(sys fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$FollowupT1DicomFileId")
+    		    if [ "$?" != 0 ]
+    		    then
+    			echo "${CmdName} : fwRunGear failed fwRunGear -w -t '$GearTags' -g dcm2niix -i dcm2niix_input '$FollowupT1DicomFileId'" 1>&2
+    			exit 1
+    		    fi
 		
-		FollowupT1NiftiFileId=$(fwget -1 -j "$FollowupT1Dicom2NiftiJobId" | jq -r '.outputs[] | select(.type == "nifti") | .file_id')
+		    FollowupT1NiftiFileId=$(fwget -1 -j "$FollowupT1Dicom2NiftiJobId" | jq -r '.outputs[] | select(.type == "nifti") | .file_id')
 	    
-		FollowupT1DicomTags=$(fwTag "$FollowupT1DicomFileId")
-		#
-		# fwTag needs the -q to keep the tags from being echoed to stdout and added to the followup json
-		#
-		[ -n "$FollowupT1DicomTags" ] && sys fwTag -q -t "$FollowupT1DicomTags" "$FollowupT1NiftiFileId"
-
-		FollowupT1NecktrimJobId=$(sys fwRunGear -w -t "$GearTags" -g 'necktrim' -i 'file' "$FollowupT1NiftiFileId")
-    		if [ "$?" != 0 ]
-    		then
-    		    echo "${CmdName} : fwRunGear failed fwRunGear -w -t '$GearTags' -g 'necktrim' -i 'file' '$FollowupT1DicomFileId'" 1>&2
-    		    exit 1
-    		fi
+		    FollowupT1DicomTags=$(fwTag "$FollowupT1DicomFileId")
+		    #
+		    # fwTag needs the -q to keep the tags from being echoed to stdout and added to the followup json
+		    #
+		    [ -n "$FollowupT1DicomTags" ] && sys fwTag -q -t "$FollowupT1DicomTags" "$FollowupT1NiftiFileId"
+		else
+		    echo Faking fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$FollowupT1DicomFileId" 1>&2
+		    FollowupT1DicomFileId=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and ((.FileTags | any(. == "Trimmed")) | not) )' | jq -r '.FileId')
+		fi
+	    fi
+	    
+	    if (echo "$opt_f" | grep -q 'RunFollowupT1NecktrimGear')
+	    then
+		    FollowupT1NecktrimJobId=$(sys fwRunGear -w -t "$GearTags" -g 'necktrim' -i 'file' "$FollowupT1NiftiFileId")
+    		    if [ "$?" != 0 ]
+    		    then
+    			echo "${CmdName} : fwRunGear failed fwRunGear -w -t '$GearTags' -g 'necktrim' -i 'file' '$FollowupT1DicomFileId'" 1>&2
+    			exit 1
+    		    fi
 		
 		FollowupT1NiftiTrimmedFileId=$(fwget -1 -j "$FollowupT1NecktrimJobId" | jq -r '.outputs[] | select(.type == "nifti") | .file_id')
 	    
@@ -399,38 +411,47 @@ then
 		sys fwget -1 -raGz "$FollowupSessionId" > "$FollowupSessionJsonFile"
 
 		FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ')
+	    else
+		echo Faking fwRunGear -w -t "$GearTags" -g 'necktrim' -i 'file' "$FollowupT1NiftiFileId" 1>&2
+		FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) '| jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	    fi
 	fi
 
-    	FollowupT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ')
-	if [ -z "$FollowupT2NiftiJson" ]
+    	FollowupT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) '| jq -s -r ' sort_by(.FileTimestamp)  | last' )
+	if [ -z "$FollowupT2NiftiJson" ] || [ "$FollowupT2NiftiJson" = "null" ] || (echo "$opt_f" | grep -q -E 'IgnoreFollowupT2NiftiJson|RunFollowupT2Dcm2NiixGear')
 	then
-    	    FollowupT2DicomJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ')
-	    if [ -z "$FollowupT2DicomJson" ]
+    	    FollowupT2DicomJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
+	    if [ -z "$FollowupT2DicomJson" ] || (echo "$opt_f" | grep -q 'IgnoreFollowupT2DicomJson')
 	    then
 		echo "${CmdName} : Missing Followup T2 for ${FollowupSessionLabel}(${FollowupSessionId}). Skipping" 1>&2
 		FollowupT2NiftiJson='{ "Missing": true }'
 	    else
-		FollowupT2DicomFileId=$(echo "$FollowupT2DicomJson" | jq -r '.FileId')
-		FollowupT2Dicom2NiftiJobId=$(sys fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$FollowupT2DicomFileId")
-    		if [ "$?" != 0 ]
-    		then
-    		    echo "${CmdName} : fwRunGear failed fwRunGear -w -t '$GearTags' -g dcm2niix -i dcm2niix_input '$FollowupT2DicomFileId'" 1>&2
-    		    exit 1
-    		fi
+		if (echo "$opt_f" | grep -q 'RunFollowupT2Dcm2NiixGear')
+		then
+		    FollowupT2DicomFileId=$(echo "$FollowupT2DicomJson" | jq -r '.FileId')
+		    FollowupT2Dicom2NiftiJobId=$(sys fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$FollowupT2DicomFileId")
+    		    if [ "$?" != 0 ]
+    		    then
+    			echo "${CmdName} : fwRunGear failed fwRunGear -w -t '$GearTags' -g dcm2niix -i dcm2niix_input '$FollowupT2DicomFileId'" 1>&2
+    			exit 1
+    		    fi
 		
-		FollowupT2NiftiFileId=$(fwget -1 -j "$FollowupT2Dicom2NiftiJobId" | jq -r '.outputs[] | select(.type == "nifti") | .file_id')
+		    FollowupT2NiftiFileId=$(fwget -1 -j "$FollowupT2Dicom2NiftiJobId" | jq -r '.outputs[] | select(.type == "nifti") | .file_id')
 	    
-		FollowupT2DicomTags=$(fwTag "$FollowupT2DicomFileId")
+		    FollowupT2DicomTags=$(fwTag "$FollowupT2DicomFileId")
 
-		#
-		# fwTag needs the -q to keep the tags from being echoed to stdout and added to the followup json
-		#
-		[ -n "$FollowupT2DicomTags" ] && sys fwTag -q -t "$FollowupT2DicomTags" "$FollowupT2NiftiFileId"
+		    #
+		    # fwTag needs the -q to keep the tags from being echoed to stdout and added to the followup json
+		    #
+		    [ -n "$FollowupT2DicomTags" ] && sys fwTag -q -t "$FollowupT2DicomTags" "$FollowupT2NiftiFileId"
 
-		sys fwget -1 -raGz "$FollowupSessionId" > "$FollowupSessionJsonFile"
-
-		FollowupT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ')
+		    sys fwget -1 -raGz "$FollowupSessionId" > "$FollowupSessionJsonFile"
+		else
+		    FollowupT2DicomFileId=$(echo "$FollowupT2DicomJson" | jq -r .'FileId')
+		    echo Faking fwRunGear -w -t "$GearTags" -g dcm2niix -i dcm2niix_input "$FollowupT2DicomFileId" 1>&2
+		fi
+		
+		FollowupT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	    fi
 	fi
 
