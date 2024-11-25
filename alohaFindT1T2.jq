@@ -15,7 +15,9 @@
    | select(
 	     # Leaving out type selection as it is too hard to allow multiples
 	     (.modality == "MR")
+	 and ((.classification.Intent | length) > 0)
          and (.classification.Intent | any("Structural"))
+	 and ((.classification.Measurement | length) > 0)
          and (.classification.Measurement | any(. == $ClassificationMeasurement))
          and ((.tags | length) > 0)
 	 and (.tags | any(. == "AlohaInput"))

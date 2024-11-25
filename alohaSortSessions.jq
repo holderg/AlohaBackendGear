@@ -36,7 +36,10 @@ def fmtDateTime(d; t): (
                |    select(
                                 ((.type == "nifti") or (.type == "archive") or (.type == "dicom"))
                             and (.modality == "MR")
+			    and ((.classification | length) > 0)
+			    and ((.classification.Intent | length) > 0)
                             and (.classification.Intent | any("Structural"))
+			    and ((.classification.Measurement | length) > 0)
                             and (.classification.Measurement | any((. == "T1") or (. == "T2")))
                             and ((.tags | length) > 0)
                             and (.tags | any(. == "AlohaInput"))
@@ -56,10 +59,13 @@ def fmtDateTime(d; t): (
 #			  , "FileId": $FileId
 #			  , "FileCreated": .created
 #			  , "FileClassificationMeasurement": .classification.Measurement[]
-			}] | sort_by(.SessionScanDateTime) | last
-        ]
+			}
+            ] | sort_by(.SessionScanDateTime) | last
+
+      ]
+      | [ .[] | select(.)] |  sort_by(.SessionScanDateTime)
 	as $SessionInfo
 	| {
- 	      "Baseline": ($SessionInfo | sort_by(.SessionScanDateTime) | first)
-	    , "Followups": ($SessionInfo | sort_by(.SessionScanDateTime) | .[1:])
+ 	      "Baseline": ($SessionInfo | first)
+	    , "Followups": ($SessionInfo | .[1:])
 	  }
