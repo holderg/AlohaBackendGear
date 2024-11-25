@@ -24,6 +24,7 @@
 #    IgnoreBaselineT1DicomJson|IgnoreBaselineT1LeftSegmentationJson|IgnoreBaselineT1NiftiTrimmedJson|IgnoreBaselineT1RightSegmentationJson
 #    IgnoreBaselineT2DicomJson|IgnoreBaselineT2LeftSegmentationJson|IgnoreBaselineT2NiftiJson|IgnoreBaselineT2RightSegmentationJson
 #    IgnoreFollowupT1DicomJson|IgnoreFollowupT1NiftiTrimmedJson|IgnoreFollowupT2DicomJson|IgnoreFollowupT2NiftiJson
+#    IgnoreAlohaRun
 #
 #    RunAshsPmcT1Gear|RunBaselineAshsPmcT2Gear
 #    RunBaselineT1Dcm2NiixGear|RunBaselineT1NecktrimGear
@@ -366,7 +367,7 @@ then
     	FollowupJson=$(jq -r -L "$FwLibDir" 'include "FwLib"; ..|select(._id == "'"$FollowupSessionId"'")? | ({"SessionId": ._id, "SessionLabel": .label, "SessionScanDateTime": sessionScanDateTime(.)})' "$SubjectJsonFile")
     
     	FollowupSessionLabel=$(echo "$FollowupJson" | jq -r '.SessionLabel')
-        [ -n "$opt_v" ] && echo "FollowupSession = '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
+        [ -n "$opt_v" ] && echo -n "${CmdName}: FollowupSession = '${FollowupSessionLabel}(${FollowupSessionId})': " 1>&2
     
     	FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	if [ -z "$FollowupT1NiftiTrimmedJson" ] || [ "$FollowupT1NiftiTrimmedJson" = 'null' ] || (echo "$opt_f" | grep -q -E 'IgnoreFollowupT1NiftiTrimmedJson|RunFollowupT1Dcm2NiixGear|RunFollowupT1NecktrimGear')
@@ -374,7 +375,7 @@ then
     	    FollowupT1DicomJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	    if [ -z "$FollowupT1DicomJson" ] || [ "$FollowupT1DicomJson" = 'null' ] || (echo "$opt_f" | grep -q 'IgnoreFollowupT1DicomJson')
 	    then
-		echo "${CmdName} : Missing Followup T1 for ${FollowupSessionLabel}(${FollowupSessionId}). Skipping" 1>&2
+		echo " Missing Followup T1. Skipping" 1>&2
 		FollowupT1NiftiJson='{ "Missing": true }'
 	    else
 		if [ -z "$opt_f" ] || (echo "$opt_f" | grep -q 'RunFollowupT1Dcm2NiixGear')
@@ -427,7 +428,7 @@ then
     	    FollowupT2DicomJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "archive") or (.FileType == "dicom") ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	    if [ -z "$FollowupT2DicomJson" ] || [ "$FollowupT2DicomJson" = 'null' ] || (echo "$opt_f" | grep -q 'IgnoreFollowupT2DicomJson')
 	    then
-		echo "${CmdName} : Missing Followup T2 for ${FollowupSessionLabel}(${FollowupSessionId}). Skipping" 1>&2
+		echo "Missing Followup T2. Skipping" 1>&2
 		FollowupT2NiftiJson='{ "Missing": true }'
 	    else
 		if [ -z "$opt_f" ] || (echo "$opt_f" | grep -q 'RunFollowupT2Dcm2NiixGear')
@@ -460,6 +461,11 @@ then
 	    fi
 	fi
 
+	if [ -n "$opt_v" ] && (echo "$FollowupT1NiftiTrimmedJson" "$FollowupT2NiftiJson" | jq -r -s '[ ..|.Missing? ] | any(.)' | grep -q 'false')
+	then
+	    echo "Found T1 and T2 Niftis. Processing" 1>&2
+	fi
+	
     	jq -r -n --argjson Followup "$FollowupJson"				\
     	      	 --argjson FollowupT1 "$FollowupT1NiftiTrimmedJson"		\
     	         --argjson FollowupT2 "$FollowupT2NiftiJson"			\
@@ -609,23 +615,32 @@ then
 		AlohaFollowupArgs+=( "$FollowupSessionT1AlohaArgFlag" "$FollowupSessionT1FilePath" )
 		AlohaFollowupArgs+=( "$FollowupSessionT2AlohaArgFlag" "$FollowupSessionT2FilePath" )
 
-		sys aloha_main.sh "${AlohaBaselineArgs[@]}" "${AlohaFollowupArgs[@]}" -w "$AlohaWorkDir"
-		ExitCode="$?"
-		if [ "$ExitCode" != 0 ]
+		if [ -n "$opt_f" ] && (echo "$opt_f" | grep -q 'IgnoreAlohaRun')
 		then
+			echo "${CmdName}: Faking aloha_main.sh" 1>&2
+		else
+		    sys aloha_main.sh "${AlohaBaselineArgs[@]}" "${AlohaFollowupArgs[@]}" -w "$AlohaWorkDir"
+		    ExitCode="$?"
+		    if [ "$ExitCode" != 0 ]
+		    then
 			echo "${CmdName} : aloha_main.sh failed '${ExitCode}'" 1>&2
 			continue
+		    fi
 		fi
 
-		LeftVolumeTxtFile="${AlohaWorkDir}/results/volumes_left.txt"
-		RightVolumeTxtFile="${AlohaWorkDir}/results/volumes_right.txt"
+		AlohaLeftVolumeTxtFile="${AlohaWorkDir}/results/volumes_left.txt"
+		AlohaRightVolumeTxtFile="${AlohaWorkDir}/results/volumes_right.txt"
+		SubjectLeftVolumeTxtFile="${TmpDir}/${BaselineSessionLabel}-${FollowupSessionLabel}-LeftVolume.txt"
+		SubjectRightVolumeTxtFile="${TmpDir}/${BaselineSessionLabel}-${FollowupSessionLabel}-RightVolume.txt"
 
 		(echo "SessionScanDate,$BaselineSessionScanDate,$FollowupSessionScanDate"
-		 cat "$LeftVolumeTxtFile")
+		 cat "$AlohaLeftVolumeTxtFile") | sys tee "$SubjectLeftVolumeTxtFile"
 
 		(echo "SessionScanDate,$BaselineSessionScanDate,$FollowupSessionScanDate"
-		 cat "$RightVolumeTxtFile")
+		 cat "$AlohaRightVolumeTxtFile") | sys tee "$SubjectLeftVolumeTxtFile"
 		
+		# *** Left and right volumes have to be stored back in the subject container
+		# *** fwUploadFile
 	    else
 		echo "${CmdName} : Invalid session aloha arguments for '${FollowupSessionLabel}(${FollowupSessionId})'. Skipping" 1>&2
 	    fi
