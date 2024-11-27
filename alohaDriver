@@ -149,6 +149,7 @@ then
     #   Set the AshsPmcT2JobId
     #
 
+    AlohaArgFlag='"-b"'
     BaselineT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-b"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ')
     if [ -z "$BaselineT1NiftiTrimmedJson" ] || [ "$BaselineT1NiftiTrimmedJson" = "null" ] || (echo "$opt_f" | grep -q -E 'IgnoreBaselineT1NiftiTrimmedJson|RunBaselineT1Dcm2NiixGear|RunBaselineT1NecktrimGear')
     then
@@ -203,6 +204,7 @@ then
     fi
     BaselineT1NiftiTrimmedFileId=$(echo "$BaselineT1NiftiTrimmedJson" | jq -r '.FileId')
 
+    AlohaArgFlag='"-c"'
     BaselineT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-c"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$BaselineSessionJsonFile" | jq -s -r '[sort_by(.FileTimestamp) | .[] | select( .FileType == "nifti" ) ] | last' )
     if [ -z "$BaselineT2NiftiJson" ] || [ "$BaselineT2NiftiJson" = "null" ] || (echo "$opt_f" | grep -q -E 'IgnoreBaselineT2NiftiJson|RunBaselineT2Dcm2NiixGear')
     then
@@ -262,6 +264,7 @@ then
 	fi
     fi
 
+    AlohaArgFlag='"-r"'
     BaselineT1LeftSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT1JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-r"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Left"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )
 
     if [ -z "$BaselineT1LeftSegmentationJson" ] || [ "$BaselineTLeftSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT1LeftSegmentationJson')
@@ -270,6 +273,7 @@ then
 	BaselineT1LeftSegmentationJson='{ "Missing": true }'
     fi
 
+    AlohaArgFlag='"-s"'
     BaselineT1RightSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT1JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-s"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Right"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )
     if [ -z "$BaselineT1RightSegmentationJson" ] || [ "$BaselineT1RightSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT1RightSegmentationJson')
     then
@@ -304,6 +308,7 @@ then
 	fi
     fi
     
+    AlohaArgFlag='"-t"'
     BaselineT2LeftSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT2JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-t"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Left"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )
     if [ -z "$BaselineT2LeftSegmentationJson" ] || [ "$BaselineT2LeftSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT2LeftSegmentationJson')
     then
@@ -311,6 +316,7 @@ then
     	BaselineT2LeftSegmentationJson='{ "Missing": true }'
     fi
 
+    AlohaArgFlag='"-u"'
     BaselineT2RightSegmentationJson=$( jq -r --argjson JobId "\"$BaselineAshsPmcT2JobId\"" 'select(._id == $JobId)' "$BaselineJobsJsonFile" | jq --argjson AlohaArgFlag '"-u"' -f alohaJob2FileIds.jq | jq --argjson Handedness '"Right"' '.Outputs[] | select(.FileModality == "SEG" and (.FileName | test("lfseg_heur")) and (.FileTags | any(. == $Handedness)) )' )    
     if [ -z "$BaselineT2RightSegmentationJson" ] || [ "$BaselineT2RightSegmentationJson" = "null" ] || (echo "$opt_f" | grep -q 'IgnoreBaselineT2RightSegmentationJson')
     then
@@ -373,6 +379,7 @@ then
     	FollowupSessionLabel=$(echo "$FollowupJson" | jq -r '.SessionLabel')
         [ -n "$opt_v" ] && echo -n "${CmdName}: FollowupSession = '${FollowupSessionLabel}(${FollowupSessionId})': " 1>&2
     
+	AlohaArgFlag='"-f"'	
     	FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) ' | jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	if [ -z "$FollowupT1NiftiTrimmedJson" ] || [ "$FollowupT1NiftiTrimmedJson" = 'null' ] || (echo "$opt_f" | grep -q -E 'IgnoreFollowupT1NiftiTrimmedJson|RunFollowupT1Dcm2NiixGear|RunFollowupT1NecktrimGear')
 	then
@@ -423,9 +430,10 @@ then
 	    fi
 
 	    sys fwget -1 -raGz "$FollowupSessionId" > "$FollowupSessionJsonFile"
-	    FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) '| jq -s -r ' sort_by(.FileTimestamp)  | last' )
+	    FollowupT1NiftiTrimmedJson=$(jq -r --argjson AlohaArgFlag '"-f"' --argjson ClassificationMeasurement '"T1"' -f alohaFindT1T2.jq "$FollowupSessionJsonFile" | jq -r 'select( (.FileType == "nifti") and (.FileTags | any(. == "Trimmed")) ) '| jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	fi
 
+	AlohaArgFlag='"-g"'	
     	FollowupT2NiftiJson=$(jq -r --argjson AlohaArgFlag '"-g"' --argjson ClassificationMeasurement '"T2"' -f alohaFindT1T2.jq  "$FollowupSessionJsonFile" | jq -r 'select( .FileType == "nifti" ) '| jq -s -r ' sort_by(.FileTimestamp)  | last' )
 	if [ -z "$FollowupT2NiftiJson" ] || [ "$FollowupT2NiftiJson" = "null" ] || (echo "$opt_f" | grep -q -E 'IgnoreFollowupT2NiftiJson|RunFollowupT2Dcm2NiixGear')
 	then
