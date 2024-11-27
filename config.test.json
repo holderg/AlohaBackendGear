@@ -1,53 +1,59 @@
 {
   "destination": {
-    "id": "66e44af0ad8f9c0ea1ce272e",
+    "id": "674517ed54af7fb582b47b21",
     "type": "analysis"
   },
   "inputs": {
     "input-file": {
       "hierarchy": {
-        "id": "66d308ddf1db2f68d474caa3",
-        "type": "session"
+        "id": "674274f18c6dfc43b3cbbb22",
+        "type": "acquisition"
       },
       "object": {
-        "type": null,
+        "type": "nifti",
         "mimetype": "application/octet-stream",
-        "modality": null,
-        "classification": {},
+        "modality": "MR",
+        "classification": {
+          "Intent": [
+            "Structural"
+          ],
+          "Measurement": [
+            "T1"
+          ]
+        },
         "tags": [
-          "Aloha",
-          "Output",
-          "Left"
+          "Trimmed",
+          "AlohaInput"
         ],
         "info": {},
-        "size": 913560,
+        "size": 22899488,
         "zip_member_count": null,
-        "version": 2,
-        "file_id": "66e30ed1c9dd7394a8a429b7",
+        "version": 1,
+        "file_id": "674292d4e3baa8833ecb8551",
         "origin": {
-          "type": "user",
-          "id": "holder@upenn.edu"
+          "type": "job",
+          "id": "6742911ddef99352a8df6fb1"
         }
       },
       "location": {
-        "path": "/flywheel/v0/input/input-file/aloha-002_S_1155-2019-05-16-2017-04-23-BaselineT1LeftTrimmedHalfwaySpace",
-        "name": "aloha-002_S_1155-2019-05-16-2017-04-23-BaselineT1LeftTrimmedHalfwaySpace"
+        "path": "/flywheel/v0/input/input-file/7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz",
+        "name": "7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz"
       },
       "base": "file"
     },
     "api-key": {
       "base": "api-key",
-      "key": "upenn.flywheel.io:djEWhoJBY634lmnw-2f-I43l7pgD_drVb5EUf0II86h2-nSbTENWIUVfQ"
+      "key": "upenn.flywheel.io:djEHk--bPSQ_RVFPCQ5ptYa9A4gNcq2Jo0j7Ceq5ipgq3WWti08vrgeuA"
     }
   },
   "config": {},
   "job": {
-    "id": "66e44af0ad8f9c0ea1ce2730",
+    "id": "674517ee54af7fb582b47b23",
     "gear_info": {
-      "id": "66e4497dd6365e746af76b73",
+      "id": "674517547d0548ff18c0eead",
       "category": "analysis",
       "name": "aloha",
-      "version": "0.1.0",
+      "version": "0.1.4",
       "capabilities": null
     }
   }

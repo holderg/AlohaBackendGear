@@ -1,6 +1,8 @@
 #!/bin/bash
 
 #
+# -A generate the Atrophy report
+#
 # alohaDriver -v -o none 66e4737e1b4b58bc3236d6d1
 # where  66e4737e1b4b58bc3236d6d1 is a subject id
 # just generats the AlohaInputs.json file
@@ -17,6 +19,9 @@
 # alohaDriver -v -r 66e4737e1b4b58bc3236d61d
 # Run the aloha script
 #
+# alohaDriver -R 66e4737e1b4b58bc3236d61d
+# Run the report
+#
 # -a download AlohaInputs.json from the flywheel subject container 
 # -d download input files
 # -f Comma separated list of portions json collection to fake
@@ -32,6 +37,7 @@
 #
 #        alohaDriver -f RunBaselineT1Dcm2NiixGear,RunBaselineT2Dcm2NiixGear -o stdout 66e4737e1b4b58bc3236d61d 
 #
+# -j JobId
 # -n no-op
 # -o [site|stdout|none]
 #     create AlohaInputs.json and upload it to the flywheel site, print to stdout, neither
@@ -50,10 +56,10 @@ function sys {
     [ -n "$opt_n" ] || "$@"
 }
 
-while getopts adf:no:ruv arg
+while getopts Aadf:j:no:ruv arg
 do
 	case "$arg" in
-	     a|d|f|n|o|r|u|v)
+	     A|a|d|f|j|n|o|r|u|v)
 		eval "opt_${arg}='${OPTARG:=1}'"
 		;;
 	esac
@@ -84,16 +90,13 @@ then
 fi
 SubjectLabel=$(jq -r '.label' "$SubjectJsonFile")
 Group=$(jq -r '.parents.group' "$SubjectJsonFile")
-ProjectId=$(jq -r '.parents.project' "$SubjectJsonFile")
-ProjectLabel=$(fwget -1 "$ProjectId" | jq -r '.label')
+
 GearTags='extra-large'
 FollowupDir="${TmpDir}/Followups"
 BaselineJsonFile="${TmpDir}/Baseline.json"
 BaselineDir="${TmpDir}/Baseline"
 
 [ -d "$BaselineDir" ] || mkdir -p "$BaselineDir"
-
-# *** should probbaly move all the intermediate file generation to the run portion of the driver
 
 if [ -n "$opt_o" ]
 then
@@ -321,6 +324,7 @@ then
     JobDate=$(date +%Y-%m-%dT%H:%M:%S%:z)
     JobLabel='Aloha'
     JobId=
+    [ -n "$opt_j" ] && JobId="$opt_j"
     
     JobJson="{\"JobLabel\": \"$JobLabel\", \"JobId\": \"$JobId\", \"JobDate\": \"$JobDate\"}"
     
@@ -560,7 +564,7 @@ then
 		echo "${CmdName} : No FollowupSessionScanDateTime for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
 	    fi
 
-	    FollowupSessionScanDate=$(date -d "$FollowupScanDateTime" "+%Y-%m-%d")
+	    FollowupSessionScanDate=$(date -d "$FollowupSessionScanDateTime" "+%Y-%m-%d")
 
     	    FollowupSessionLabel=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .SessionLabel' "$AlohaInputsJsonFile")
 	    if [ -z "$FollowupSessionLabel" ] || [ "$FollowupSessionLabel" = 'null' ]
@@ -591,7 +595,7 @@ then
 	    FollowupSessionT2AlohaArgFlag=$(jq -r '.Followups[] | select(.SessionId == "'"$FollowupSessionId"'") | .T2.AlohaArgFlag' "$AlohaInputsJsonFile")
 	    if [ -z "$FollowupSessionT2AlohaArgFlag" ] || [ "$FollowupSessionT2AlohaArgFlag" = 'null' ]
 	    then
-		echo "${CmdName} : No FollowupSessionT2AlohaArgFlag for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
+		echo "${CmdName} : No FollowupSessionT2T2AlohaArgFlag for '${FollowupSessionLabel}(${FollowupSessionId})'" 1>&2
  										    
 		RunAloha=false
 	    fi
@@ -637,14 +641,32 @@ then
 		 cat "$AlohaLeftVolumeTxtFile") | sys tee "$SubjectLeftVolumeTxtFile"
 
 		(echo "SessionScanDate,$BaselineSessionScanDate,$FollowupSessionScanDate"
-		 cat "$AlohaRightVolumeTxtFile") | sys tee "$SubjectLeftVolumeTxtFile"
+		 cat "$AlohaRightVolumeTxtFile") | sys tee "$SubjectRightVolumeTxtFile"
 		
-		# *** Left and right volumes have to be stored back in the subject container
-		# *** fwUploadFile
+		if echo "$opt_o" | grep -qi 'site'
+		then
+		    sys fwuploadfile -v -t 'AlohaOutput,HippocampalVolume,Left' -p "$SubjectId" "$SubjectLeftVolumeTxtFile" 
+		    sys fwuploadfile -v -t 'AlohaOutput,HippocampalVolume,Right' -p "$SubjectId" "$SubjectRightVolumeTxtFile"
+		fi
+
 	    else
 		echo "${CmdName} : Invalid session aloha arguments for '${FollowupSessionLabel}(${FollowupSessionId})'. Skipping" 1>&2
 	    fi
 	done
+fi
+
+if [ -n "$opt_A" ]
+then
+    LeftVolumeFileIds=( $( sys fwget -1 -r "$SubjectId" | jq -r '.files[] | select( (.tags | any("HippocamplVolume")) and (.tags | any(. == "Left")) ) | .file_id' ) )
+    RightVolumeFileIds=( $( sys fwget -1 -r "$SubjectId" | jq -r '.files[] | select( (.tags | any("HippocamplVolume")) and (.tags | any(. == "Right")) ) | .file_id' ) )
+
+    LeftVolumeFilenames=( $( sys fwget -1 -f --download --download-dir "${TmpDir}" "${LeftVolumeFileIds[@]}" | sed "s/^.*=> //; s/ / -l /g; s/^/-l /") )
+    RightVolumeFilenames=( $( sys fwget -1 -f --download --download-dir "${TmpDir}" "${RightVolumeFileIds[@]}" | sed "s/^.*=> //; s/ / -r /g; s/^/-r /" ) )
+
+    AlohaSubjectAtrophyRatesCsvFile="${TmpDir}/${SubjectLabel}AtrophyRates.csv"
+    sys ./calculateAtrophyRates "${LeftVolumeFilenames[@]}" "${RightVolumeFilenames[@]}" > "$AlohaSubjectAtrophyRatesCsvFile"
+
+    [ -n "$opt_v" ] && cat "$AlohaSubjectAtrophyRatesCsvFile"
 fi
 
 exit

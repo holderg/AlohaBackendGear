@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/bash -x
 
 CmdName=$(basename "$0")
-Syntax="${CmdName} [-c config][-n]([-p ProjectId]|[-s SubjectId])[-v]
+Syntax="${CmdName} [-c config][-n]([-p ProjectId]|[-s SubjectId])[-v][(VerifyAlohaInputs|CompileReport|RunAloha|CalculateAtrophy)]" 
 
 function sys {
 	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
@@ -27,24 +27,58 @@ else
 	ConfigJsonFile="${FLYWHEEL}/config.json"
 fi
 
+jq -r . "$ConfigJsonFile"
+
+JobId=$(jq -r '.job.id | select(.)' "$ConfigJsonFile")
+
 InputDir=/flywheel/v0/input
 TmpDir=/tmp/aloha
 
 [ -d "$TmpDir" ] || mkdir -p "$TmpDir"
 
-Are we doing the whole project, or just a subject?
-Are we just generating the AlohaInputs json, or generating a report, or just running aloha
+if [ -n "$opt_s" ]
+then
+	SubjectIds=( $opt_s )
+elif [ -n "$opt_p" ]
+then
+	SubjectIds=( $(sys fwget -1 "$opt_p" | jq -r '.subjects[]._id') )
+else
+	if ! [ -e "$ConfigJsonFile" ]
+	then
+		echo "${CmdName} : No Project, Subject Id provided and no config file.  Exiting" 1>&2
+		exit 1
+	fi		
 
-SubjectId=$(fwget -1 "$AcquisitionId" | jq -r '.parents.subject' | fwget -1 | jq -r '._id')
-	if [ -z "$SubjectId" ]
-        then
-                echo "${CmdName} : can not find SubjectId from '$AcquisitionId'" 1>&2
-                exit 2
-        fi
+	SubjectIds=( $(jq -r '.job.id' "$ConfigJsonFile" | fwget -1 -j | jq -r '.parents.subject') )
+fi
 
-	echo "SubjectId = '$SubjectId'"
+[ -n "$opt_v" ] && echo "SubjectId = '${SubjectIds[@]}'" 1>&2
 
-	 TmpSubjectDir="${TmpDir}/${SubjectId}"
-	 [ -d "$TmpSubjectDir" ] || mkdir -p "$TmpSubjectDir"
-         TmpFwSubjectJsonFile="$TmpSubjectDir"/FwSubject.json
+AlohaArgs=( -v -o stdout,site -r '-u' -d -j "$JobId")
 
+for i in "$@"
+do
+	case "$i" in
+     	    VerifyAlohaInputs)
+		AlohaArgs+=( '-o' 'stdout,site' )
+		;;
+	    
+	    CompileReport)
+		;;
+	    
+	    RunAloha)
+		AlohaArgs+=( '-r' )
+		;;
+
+	    CalculateAtrophy)
+		AlohaArgs+=( '-A' )
+		;;
+	esac
+done
+
+n=0
+for SubjectId in "${SubjectIds[@]}"
+do
+    echo "$SubjectId ${n}/${#SubjectIds[@]}" 1>&2
+    sys alohaDriver "${AlohaArgs[@]}" "$SubjectId"
+done
