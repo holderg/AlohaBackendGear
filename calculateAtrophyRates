@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+
+import argparse
+import csv
+import glob
+import numpy as np
+import os
+import pandas as pd
+import re
+import sys
+
+
+def obtain_atrophy_per_subject(csv_left, csv_right):
+
+    if len(csv_left) == 0 and len(csv_right) == 0:
+        raise ValueError("No files found for progression rate estimation.")
+
+    # if len(csv_left) != len(csv_right):
+    #     raise ValueError("Number of measurements from left and right are unequal.")
+
+    # read the csv list, and merge into one big csv file
+    if len(csv_left) >= 1:
+        df_left = pd.read_csv(csv_left[0])
+        for file_path in csv_left[1:]:
+            temp_df = pd.read_csv(file_path)
+            # Append only the last column of the current file
+            df_left = pd.concat([df_left, temp_df.iloc[:, -1]], axis=1)
+
+    if len(csv_right) >= 1:
+        df_right = pd.read_csv(csv_right[0])
+        for file_path in csv_right[1:]:
+            temp_df = pd.read_csv(file_path)
+            # Append only the last column of the current file
+            df_right = pd.concat([df_right, temp_df.iloc[:, -1]], axis=1)
+
+    # merge and average left and right.
+    #merged_df = pd.concat([df_left.set_index('Structure'), df_right.set_index('Structure')], axis=1)
+    merged_df = pd.concat([df_left.set_index('SessionScanDate'), df_right.set_index('SessionScanDate')], axis=1)
+    result_df = merged_df.groupby(merged_df.columns, axis=1).mean().reset_index()
+
+    # use pandas to calculate overall atrophy rate for each substructure.
+    # Extract scan dates and convert to datetime
+    scan_dates = pd.to_datetime(result_df.columns[1:])
+    result_df.columns = ['Structure'] + list(scan_dates)
+
+    # Compute progression rate for each brain region
+    progression_rates = []
+    for index, row in result_df.iterrows():
+        volumes = row[1:]  # Exclude the Structure column
+        t0 = scan_dates[0]
+        v0 = volumes[t0]
+        
+        # Calculate sums for the formula
+        time_diffs_squared = np.sum(((scan_dates - t0).days/365) ** 2)
+        volume_diffs_squared = np.sum((volumes - v0) * ((scan_dates - t0).days/365))
+        
+        # Handle division by zero
+        if time_diffs_squared == 0:
+            A = np.nan  # Assign NaN if there's no progression
+        else:
+            A = volume_diffs_squared /time_diffs_squared
+        progression_rates.append(A)
+
+    # Add progression rates to the DataFrame
+    result_df['Progression_Rate'] = progression_rates
+
+    print(result_df)
+
+
+    return
+
+CmdName = os.path.basename(sys.argv[0])
+
+ap = argparse.ArgumentParser()
+
+ap.add_argument('-l', '--left', action='append', default=None, help='left csv file')
+ap.add_argument('-n', '--noop',  action='store_true', default=False, help='no-op')
+ap.add_argument('-r', '--right', action='append', default=None, help='right csv file')
+ap.add_argument('-v', '--verbose', default=False,  action='store_true', help='verbose')
+
+ap.add_argument('files', nargs='*', type=str, default=None, help='Files to upload')
+
+args = ap.parse_args()
+
+print("Args.left = {}".format(args.left))
+print("Args.right = {}".format(args.right))
+
+obtain_atrophy_per_subject(args.left, args.right)
