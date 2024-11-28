@@ -67,11 +67,7 @@ do
 		;;
 	    
 	    RunAloha)
-		AlohaArgs+=( '-r' )
-		;;
-
-	    CalculateAtrophy)
-		AlohaArgs+=( '-A' )
+		AlohaArgs+=( '-r' '-A' )
 		;;
 	esac
 done

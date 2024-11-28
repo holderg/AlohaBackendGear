@@ -9,6 +9,7 @@ import pandas as pd
 import re
 import sys
 
+from io import StringIO
 
 def obtain_atrophy_per_subject(csv_left, csv_right):
 
@@ -64,8 +65,7 @@ def obtain_atrophy_per_subject(csv_left, csv_right):
     # Add progression rates to the DataFrame
     result_df['Progression_Rate'] = progression_rates
 
-    print(result_df)
-
+    result_df.to_csv(sys.stdout, index=False)
 
     return
 

@@ -24,6 +24,9 @@
 #
 # -a download AlohaInputs.json from the flywheel subject container 
 # -d download input files
+#
+# *** The ignore/run/Fake logic is not correct.
+#
 # -f Comma separated list of portions json collection to fake
 #    IgnoreBaselineAshsPmcT1JobId|IgnoreBaselineAshsPmcT2JobId
 #    IgnoreBaselineT1DicomJson|IgnoreBaselineT1LeftSegmentationJson|IgnoreBaselineT1NiftiTrimmedJson|IgnoreBaselineT1RightSegmentationJson
@@ -38,6 +41,7 @@
 #        alohaDriver -f RunBaselineT1Dcm2NiixGear,RunBaselineT2Dcm2NiixGear -o stdout 66e4737e1b4b58bc3236d61d 
 #
 # -j JobId
+# -m MachineTag - tag to use change the default machine size
 # -n no-op
 # -o [site|stdout|none]
 #     create AlohaInputs.json and upload it to the flywheel site, print to stdout, neither
@@ -56,10 +60,10 @@ function sys {
     [ -n "$opt_n" ] || "$@"
 }
 
-while getopts Aadf:j:no:ruv arg
+while getopts Aadf:j:m:no:ruv arg
 do
 	case "$arg" in
-	     A|a|d|f|j|n|o|r|u|v)
+	     A|a|d|f|j|m|n|o|r|u|v)
 		eval "opt_${arg}='${OPTARG:=1}'"
 		;;
 	esac
@@ -91,25 +95,33 @@ fi
 SubjectLabel=$(jq -r '.label' "$SubjectJsonFile")
 Group=$(jq -r '.parents.group' "$SubjectJsonFile")
 
-GearTags='extra-large'
+if [ -n "$opt_m" ]
+then
+    GearTags="$opt_m"
+else
+    GearTags='extra-large'
+fi
+
 FollowupDir="${TmpDir}/Followups"
 BaselineJsonFile="${TmpDir}/Baseline.json"
 BaselineDir="${TmpDir}/Baseline"
 
 [ -d "$BaselineDir" ] || mkdir -p "$BaselineDir"
 
+SortedSessionsJsonFile="${TmpDir}/SortedSessions.json"
+jq -r  -L "$FwLibDir" -f alohaSortSessions.jq "$SubjectJsonFile" > "$SortedSessionsJsonFile"
+    
+# *** Don't need acquisition info as that will be in the T1/T2 stanzas
+BaselineJson=$(jq -r '.Baseline' "$SortedSessionsJsonFile")
+if [ -z "$BaselineJson" ] || [ "$BaselineJson" = 'null' ]
+then
+    echo "${CmdName} : Missing Baseline session" 1>&2
+    exit 2
+fi
+BaselineSessionLabel=$(echo "$BaselineJson" | jq -r '.SessionLabel')
+
 if [ -n "$opt_o" ]
 then
-    SortedSessionsJsonFile="${TmpDir}/SortedSessions.json"
-    jq -r  -L "$FwLibDir" -f alohaSortSessions.jq "$SubjectJsonFile" > "$SortedSessionsJsonFile"
-    
-    # *** Don't need acquisition info as that will be in the T1/T2 stanzas
-    BaselineJson=$(jq -r '.Baseline' "$SortedSessionsJsonFile")
-    if [ -z "$BaselineJson" ] || [ "$BaselineJson" = 'null' ]
-    then
-    	echo "${CmdName} : Missing Baseline session" 1>&2
-    	exit 2
-    fi
 
     FollowupCount=$(jq -r '[.Followups[] | select(.)] | length' "$SortedSessionsJsonFile")
     # *** should make sure not all the followup sessions are null
@@ -120,7 +132,6 @@ then
     fi
     
     BaselineSessionId=$(echo "$BaselineJson" | jq -r '.SessionId')
-    BaselineSessionLabel=$(echo "$BaselineJson" | jq -r '.SessionLabel')
     BaselineSessionJsonFile="${TmpDir}/BaselineSession.json"
     jq -r '..|select(._id == "'"$BaselineSessionId"'")?' "$SubjectJsonFile" > "$BaselineSessionJsonFile"
     
