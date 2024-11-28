@@ -72,7 +72,6 @@ done
 
 shift $(( "$OPTIND" - 1 ))
 
-[ -n "$opt_t" ] && AtrophyArgs=( -t )
 [ -n "$opt_u" ] && UpdateAll=1
 
 TmpDir="/tmp/Aloha"
@@ -687,7 +686,12 @@ then
     AlohaSubjectAtrophyRatesCsvFile="${TmpDir}/${SubjectLabel}AtrophyRates.csv"
     sys alohaCalculateAtrophyRates "${AtrophyArgs[@]}" "${LeftVolumeFilenames[@]}" "${RightVolumeFilenames[@]}" > "$AlohaSubjectAtrophyRatesCsvFile"
 
-    [ -n "$opt_v" ] && cat "$AlohaSubjectAtrophyRatesCsvFile"
+    if [ -n "$opt_t" ]
+    then
+	sys alohaCalculateAtrophyRates -t "${AtrophyArgs[@]}" "${LeftVolumeFilenames[@]}" "${RightVolumeFilenames[@]}"
+    else
+	cat "$AlohaSubjectAtrophyRatesCsvFile"
+    fi
 fi
 
 exit
