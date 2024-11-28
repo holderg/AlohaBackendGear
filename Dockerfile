@@ -27,6 +27,7 @@ COPY 	alohaDriver				\
 COPY	alohaFindSegmentFiles.jq		\
 	alohaFindT1T2.jq			\
 	alohaFlattenDict.jq			\
+	alohaJob2FileIds.jq			\
 	alohaSessionReport.jq			\
 	alohaSortSessions.jq			\
 						\
@@ -35,4 +36,4 @@ COPY	alohaFindSegmentFiles.jq		\
 RUN cd ${FLYWHEEL}; git clone https://github.com/brainsciencecenter/flywheel.git; cd flywheel; git config pull.rebase false; git pull
 
 RUN chmod +x run
-ENTRYPOINT ["./run"]
+ENTRYPOINT ["./run -v"]

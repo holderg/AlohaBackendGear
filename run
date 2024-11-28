@@ -54,7 +54,7 @@ fi
 
 [ -n "$opt_v" ] && echo "SubjectId = '${SubjectIds[@]}'" 1>&2
 
-AlohaArgs=( -v -o stdout,site -r '-u' -d -j "$JobId")
+AlohaArgs=( -v -u -o stdout,site -d -r -A -j "$JobId")
 
 for i in "$@"
 do
