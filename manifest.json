@@ -14,10 +14,11 @@
       "type": "string"
     },
     "Stages": {
-      "default": "default (VerifyInputs)",
-      "description": "Which stages of the pipeline to run",
+      "default": "default",
+      "description": "Which stages of the pipeline to run, default is VerifyAlohaInputs",
       "enum": [
-        "VerifyInputs",
+        "default",
+        "VerifyAlohaInputs",
         "RunAloha",
         "CalculateAtrophyRates",
         "VerifyInputs,RunAloha"

@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 CmdName=$(basename "$0")
-Syntax="${CmdName} [-c config][-n][-i ProjectId|SubjectId][-m extra-large|supersize][-s VerifyInputs|RunReport|Aloha|CalculateAtrophyRates][-v][(VerifyAlohaInputs|CompileReport|RunAloha|CalculateAtrophy)]" 
+Syntax="${CmdName} [-c config][-n][-i ProjectId|SubjectId][-m extra-large|supersize][-s VerifyInputs|RunReport|Aloha|CalculateAtrophyRates][-t][-v][(VerifyAlohaInputs|CompileReport|RunAloha|CalculateAtrophy)]" 
 
 function sys {
 	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
@@ -9,10 +9,10 @@ function sys {
 }
 
 
-while getopts c:i:m:ns:v arg
+while getopts c:i:m:ns:tv arg
 do
 	case "$arg" in
-		c|m|n|i|s|v)
+		c|m|n|i|s|t|v)
 			eval "opt_${arg}='${OPTARG:=1}'"
 			;;
 	esac
@@ -104,6 +104,11 @@ done
 if [ -n "$opt_m" ]
 then
     AlohaDriverArgs+=( '-m' "$opt_m" )
+fi
+
+if [ -n "$opt_t" ]
+then
+    AlohaDriverArgs+=( '-t' )
 fi
 
 n=1
