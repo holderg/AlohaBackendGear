@@ -2,7 +2,29 @@
   "author": "Gaylord Holder <holder@upenn.edu>",
   "cite": "",
   "command": "./run -v -u",
-  "config": {},
+  "config": {
+    "MachineSize": {
+      "default": "None",
+      "description": "May be extra-large, 8 vCPUs, or supersize, 32 vCPUs",
+      "enum": [
+        "None",
+        "extra-large",
+        "supersize"
+      ],
+      "type": "string"
+    },
+    "Stages": {
+      "default": "default (VerifyInputs)",
+      "description": "Which stages of the pipeline to run",
+      "enum": [
+        "VerifyInputs",
+        "RunAloha",
+        "CalculateAtrophyRates",
+        "VerifyInputs,RunAloha"
+      ],
+      "type": "string"
+    }
+  },
   "description": "Aloha Gear",
   "environment": {
     "PATH": "/flywheel/v0/flywheel/bin:/tk/greedy/build:/tk/cmrep/build:/tk/c3d/build:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/flywheel/v0/aloha/scripts:/flywheel/v0/aloha/aloha/ext/Linux/bin",
@@ -14,7 +36,7 @@
   },
   "custom": {
     "gear-builder": {
-      "image": "aloha:0.1.6",
+      "image": "aloha:0.1.9",
       "category": "analysis"
     },
     "flywheel": {
@@ -38,5 +60,5 @@
   "source": "",
   "url": "",
   "license": "MIT",
-  "version": "0.1.6"
+  "version": "0.1.9"
 }

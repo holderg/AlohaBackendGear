@@ -65,7 +65,10 @@ def obtain_atrophy_per_subject(csv_left, csv_right):
     # Add progression rates to the DataFrame
     result_df['Progression_Rate'] = progression_rates
 
-    result_df.to_csv(sys.stdout, index=False)
+    if (args.table):
+        print(result_df)
+    else:
+        result_df.to_csv(sys.stdout, index=False)
 
     return
 
@@ -76,6 +79,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument('-l', '--left', action='append', default=None, help='left csv file')
 ap.add_argument('-n', '--noop',  action='store_true', default=False, help='no-op')
 ap.add_argument('-r', '--right', action='append', default=None, help='right csv file')
+ap.add_argument('-t', '--table', action='store_true', default=False, help='print rates in table form')
 ap.add_argument('-v', '--verbose', default=False,  action='store_true', help='verbose')
 
 ap.add_argument('files', nargs='*', type=str, default=None, help='Files to upload')

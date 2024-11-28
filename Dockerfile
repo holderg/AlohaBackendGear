@@ -16,11 +16,12 @@ COPY requirements.txt ${FLYWHEEL}/
 RUN pip install -r requirements.txt
 
 COPY run config.test.json ${FLYWHEEL}/ 
-COPY 	alohaDriver				\
-	alohaGenJson				\
+COPY 	alohaCalculateAtrophyRates		\
 	alohaDownloadInputFiles			\
-	alohaVerifyInputs			\
+	alohaDriver				\
+	alohaGenJson				\
 	alohaUploadAndTagOutputs		\
+	alohaVerifyInputs			\
 						\
 	/usr/local/bin/
 

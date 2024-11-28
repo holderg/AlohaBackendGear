@@ -1,7 +1,7 @@
 #!/bin/bash -x
 
 CmdName=$(basename "$0")
-Syntax="${CmdName} [-c config][-n]([-p ProjectId]|[-s SubjectId])[-v][(VerifyAlohaInputs|CompileReport|RunAloha|CalculateAtrophy)]" 
+Syntax="${CmdName} [-c config][-n][-i ProjectId|SubjectId][-m extra-large|supersize][-s VerifyInputs|RunReport|Aloha|CalculateAtrophyRates][-v][(VerifyAlohaInputs|CompileReport|RunAloha|CalculateAtrophy)]" 
 
 function sys {
 	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
@@ -9,10 +9,10 @@ function sys {
 }
 
 
-while getopts c:ns:v arg
+while getopts c:i:m:ns:v arg
 do
 	case "$arg" in
-		c|n|s|v)
+		c|m|n|i|s|v)
 			eval "opt_${arg}='${OPTARG:=1}'"
 			;;
 	esac
@@ -36,45 +36,79 @@ TmpDir=/tmp/aloha
 
 [ -d "$TmpDir" ] || mkdir -p "$TmpDir"
 
-if [ -n "$opt_s" ]
+if [ -n "$opt_i" ]
 then
-	SubjectIds=( $opt_s )
-elif [ -n "$opt_p" ]
-then
-	SubjectIds=( $(sys fwget -1 "$opt_p" | jq -r '.subjects[]._id') )
+    ParentCount=$(fwget -1 6740a4d1f2eb9f113bdf6ec1 | jq -r '.parents[]' | wc -l)
+    if [ "$ParentCount" == 0 ]
+    then
+	echo "${CmdName} : -i '$opt_i' can not be found.  Exiting" 1>&2
+	exit 1
+    elif [ "$ParentCount" == 1 ]
+    then
+	SubjectIds=( $(sys fwget -1 -r "$opt_i" | jq -r '.subjects[]._id') )
+    elif [ "$ParentCount" == 2 ]
+    then
+	SubjectIds=( $opt_i )
+    else
+	echo "${CmdName} : -i '$opt_i' : unknown container type.  Exiting" 1>&2
+	exit 1
+    fi
 else
-	if ! [ -e "$ConfigJsonFile" ]
-	then
-		echo "${CmdName} : No Project, Subject Id provided and no config file.  Exiting" 1>&2
-		exit 1
-	fi		
+    if ! [ -e "$ConfigJsonFile" ]
+    then
+	echo "${CmdName} : No Project, Subject Id provided and no config file.  Exiting" 1>&2
+	exit 1
+    fi		
 
-	SubjectIds=( $(jq -r '.job.id' "$ConfigJsonFile" | fwget -1 -j | jq -r '.parents.subject') )
+    SubjectIds=( $(jq -r '.job.id' "$ConfigJsonFile" | fwget -1 -j | jq -r '.parents.subject') )
 fi
 
-[ -n "$opt_v" ] && echo "SubjectId = '${SubjectIds[@]}'" 1>&2
+[ -n "$opt_v" ] && echo "SubjectIds = '${SubjectIds[@]}'" 1>&2
 
-AlohaArgs=( -v -u -o stdout,site -d -r -A -j "$JobId")
+AlohaDriverArgs=( '-v' '-u' '-o' 'stdout,site' '-d' '-r' '-A' '-j' "$JobId")
 
-for i in "$@"
+Stages=( 'VerifyInputs' )
+if [ -n "$opt_s" ]
+then
+    # *** Would be nice to accept a leading +|= to add or override
+    Stages=( $(echo "$opt_s" | sed 's/, */ /g') )
+    AlohaDriverArgs=( '-v' '-j' "$JobId" )
+else
+    ConfigStages=$(jq -r '.config.Stages | select(.)' "$ConfigJsonFile")
+    if [ -n "$ConfigStages" ] && (echo "$ConfigStages" | grep -v -q default)
+    then
+	Stages=( $(echo "$ConfigStages" | sed 's/, */ /g') )
+	AlohaDriverArgs=( '-v' '-j' "$JobId" )
+    fi
+fi
+
+for i in "${Stages[@]}"
 do
 	case "$i" in
      	    VerifyAlohaInputs)
-		AlohaArgs+=( '-o' 'stdout,site' )
+		AlohaDriverArgs+=( '-u' '-o' 'stdout,site' )
 		;;
 	    
 	    CompileReport)
 		;;
 	    
 	    RunAloha)
-		AlohaArgs+=( '-r' '-A' )
+		AlohaDriverArgs+=( '-d' '-r' '-A' )
 		;;
+
+	    CalculateAtrophyRates)
+		AlohaDriverArgs+=( '-A' )
 	esac
 done
 
-n=0
+if [ -n "$opt_m" ]
+then
+    AlohaDriverArgs+=( '-m' "$opt_m" )
+fi
+
+n=1
 for SubjectId in "${SubjectIds[@]}"
 do
     echo "$SubjectId ${n}/${#SubjectIds[@]}" 1>&2
-    sys alohaDriver "${AlohaArgs[@]}" "$SubjectId"
+    sys alohaDriver "${AlohaDriverArgs[@]}" "$SubjectId"
 done

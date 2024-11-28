@@ -47,6 +47,7 @@
 #     create AlohaInputs.json and upload it to the flywheel site, print to stdout, neither
 #     the AlohaInputs.json file will not be created unless -o is part of the command line
 # -r run aloha code
+# -t print atrophy rates in table form
 # -u update files that take a long time to get
 # -v verbose
 
@@ -60,10 +61,10 @@ function sys {
     [ -n "$opt_n" ] || "$@"
 }
 
-while getopts Aadf:j:m:no:ruv arg
+while getopts Aadf:j:m:no:rtuv arg
 do
 	case "$arg" in
-	     A|a|d|f|j|m|n|o|r|u|v)
+	     A|a|d|f|j|m|n|o|r|t|u|v)
 		eval "opt_${arg}='${OPTARG:=1}'"
 		;;
 	esac
@@ -71,7 +72,8 @@ done
 
 shift $(( "$OPTIND" - 1 ))
 
-[ "$opt_u" ] && UpdateAll=1
+[ -n "$opt_t" ] && AtrophyArgs=( -t )
+[ -n "$opt_u" ] && UpdateAll=1
 
 TmpDir="/tmp/Aloha"
 [ -e "$TmpDir" ] || mkdir -p "$TmpDir"
@@ -683,7 +685,7 @@ then
     RightVolumeFilenames=( $( sys fwget -1 -f --download --download-dir "${TmpDir}" "${RightVolumeFileIds[@]}" | sed "s/^.*=> //; s/ / -r /g; s/^/-r /" ) )
 
     AlohaSubjectAtrophyRatesCsvFile="${TmpDir}/${SubjectLabel}AtrophyRates.csv"
-    sys ./calculateAtrophyRates "${LeftVolumeFilenames[@]}" "${RightVolumeFilenames[@]}" > "$AlohaSubjectAtrophyRatesCsvFile"
+    sys alohaCalculateAtrophyRates "${AtrophyArgs[@]}" "${LeftVolumeFilenames[@]}" "${RightVolumeFilenames[@]}" > "$AlohaSubjectAtrophyRatesCsvFile"
 
     [ -n "$opt_v" ] && cat "$AlohaSubjectAtrophyRatesCsvFile"
 fi
