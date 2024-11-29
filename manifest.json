@@ -2,31 +2,7 @@
   "author": "Gaylord Holder <holder@upenn.edu>",
   "cite": "",
   "command": "./run -v -u",
-  "config": {
-    "MachineSize": {
-      "default": "None",
-      "description": "May be extra-large, 8 vCPUs, or supersize, 32 vCPUs",
-      "enum": [
-        "None",
-        "extra-large",
-        "supersize"
-      ],
-      "type": "string"
-    },
-    "Stages": {
-      "default": "default",
-      "description": "Which stages of the pipeline to run, default is VerifyAlohaInputs",
-      "enum": [
-        "default",
-        "VerifyAlohaInputs",
-        "RunAloha",
-        "CalculateAtrophyRates",
-        "VerifyInputs,RunAloha"
-      ],
-      "type": "string"
-    }
-  },
-  "description": "Aloha Gear",
+  "description": "Aloha Backend Gear",
   "environment": {
     "PATH": "/flywheel/v0/flywheel/bin:/tk/greedy/build:/tk/cmrep/build:/tk/c3d/build:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/flywheel/v0/aloha/scripts:/flywheel/v0/aloha/aloha/ext/Linux/bin",
     "LD_LIBRARY_PATH": "/tk/vtk/build/lib",
@@ -37,7 +13,7 @@
   },
   "custom": {
     "gear-builder": {
-      "image": "aloha:0.1.9",
+      "image": "aloha:0.1.1",
       "category": "analysis"
     },
     "flywheel": {
@@ -46,10 +22,45 @@
     }
   },
   "inputs": {
-    "input-file": {
+    "BaselineT1NiftiTrimmed": {
       "base": "file",
       "optional": false,
-      "description": "Input file for the gear"
+      "description": "Baseline T1 Nifti file with trimmed neck"
+    },
+    "BaselineT2Nifti": {
+      "base": "file",
+      "optional": false,
+      "description": "Baseline T2 Right Nifti file"
+    },
+    "BaselineT1NiftiLeftSegmentation": {
+      "base": "file",
+      "optional": false,
+      "description": "Baseline T1 Left Segmentation Nifti file"
+    },
+    "BaselineT1NiftiRightSegmentation": {
+      "base": "file",
+      "optional": false,
+      "description": "Baseline T1 Right Segmentation Nifti file"
+    },
+    "BaselineT2NiftiLeftSegmentation": {
+      "base": "file",
+      "optional": false,
+      "description": "Baseline T2 Left Segmentation Nifti file"
+    },
+    "BaselineT2NiftiRightSegmentation": {
+      "base": "file",
+      "optional": false,
+      "description": "Baseline T2 Right Segmentation Nifti file"
+    },
+    "FollowupT1NiftiTrimmed": {
+      "base": "file",
+      "optional": false,
+      "description": "Followup T1 Nifti file with trimmed neck"
+    },
+    "FollowupT2Nifti": {
+      "base": "file",
+      "optional": false,
+      "description": "Followup T2 Nifti file"
     },
     "api-key": {
       "base": "api-key",
@@ -57,9 +68,9 @@
     }
   },
   "label": "Aloha",
-  "name": "aloha",
+  "name": "alohabackend",
   "source": "",
   "url": "",
   "license": "MIT",
-  "version": "0.1.9"
+  "version": "0.1.1"
 }
