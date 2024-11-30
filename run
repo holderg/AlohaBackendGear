@@ -1,7 +1,19 @@
 #!/bin/bash -x
 
 CmdName=$(basename "$0")
-Syntax="${CmdName} [-c config][-n][-i ProjectId|SubjectId][-m extra-large|supersize][-s VerifyInputs|RunReport|Aloha|CalculateAtrophyRates][-t][-v][(VerifyAlohaInputs|CompileReport|RunAloha|CalculateAtrophy)]" 
+Syntax="${CmdName} [-c config][-n][-v] {-b BaselineT1NiftiTrimmed}{-c BaselineT2Nifti}{-r BaselineT1LeftSegmentation}{-s BaselineT1RightSegmentation}{-t BaselineT2LeftSegmentation}{-u BaselineT2RightSegmentation}{-f FollowupT1NiftiTrimmed}{-g FollowupT2Nifti}"
+
+#         -b image          Filename of baseline 3D gradient echo MRI (ALOHA_BL_MPRAGE, T1w)
+#         -c image          Filename of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE, T2w)
+#
+#         -r image          Filename of left hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_L
+#         -s image          Filename of right hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_
+#         -t image          Filename of left subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE
+#         -u image          Filename of right subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TS
+#
+#         -f image          Filename of followup 3D gradient echo MRI (ALOHA_FU_MPRAGE, T1w)
+#         -g image          Filename of followup 2D focal fast spin echo MRI  (ALOHA_FU_TSE, T2w)
+#
 
 function sys {
 	[ -n "${opt_n}${opt_v}" ] && echo "$@" 1>&2
@@ -9,10 +21,10 @@ function sys {
 }
 
 
-while getopts c:i:m:ns:tv arg
+while getopts nvC:b:c:r:s:t:u:f:g: arg
 do
 	case "$arg" in
-		c|m|n|i|s|t|v)
+		C|n|v|b|c|r|s|t|u|f|g)
 			eval "opt_${arg}='${OPTARG:=1}'"
 			;;
 	esac
@@ -20,100 +32,72 @@ done
 
 shift $(("$OPTIND" - 1))
 
-if [ -n "$opt_c" ]
+if [ -n "$opt_C" ]
 then
-	ConfigJsonFile="$opt_c"
+	ConfigJsonFile="$opt_C"
 else
 	ConfigJsonFile="${FLYWHEEL}/config.json"
 fi
 
-jq -r . "$ConfigJsonFile"
 
-JobId=$(jq -r '.job.id | select(.)' "$ConfigJsonFile")
+if [ -e "$ConfigJsonFile" ]
+then
+    jq -r . "$ConfigJsonFile"
+    JobId=$(jq -r '.job.id | select(.)' "$ConfigJsonFile")
+
+    BaselineT1NiftiTrimmedFile=$(jq -r '.inputs.BaselineT1NiftiTrimmed.location.path' "$ConfigJsonFile")
+    BaselineT2NiftiFile=$(jq -r '.inputs.BaselineT2Nifti.location.path' "$ConfigJsonFile")
+
+    BaselineT1LeftSegmentationFile=$(jq -r '.inputs.BaselineT1LeftSegmentation.location.path' "$ConfigJsonFile")
+    BaselineT1RightSegmentationFile=$(jq -r '.inputs.BaselineT1RightSegmentation.location.path' "$ConfigJsonFile")
+    BaselineT2LeftSegmentationFile=$(jq -r '.inputs.BaselineT2LeftSegmentation.location.path' "$ConfigJsonFile")
+    BaselineT2RightSegmentationFile=$(jq -r '.inputs.BaselineT1RightSegmentation.location.path' "$ConfigJsonFile")
+
+    FollowupT1NiftiTrimmedFile=$(jq -r '.inputs.FollowupT1NiftiTrimmed.location.path' "$ConfigJsonFile")
+    FollowupT2NiftiFile=$(jq -r '.inputs.FollowupT2Nifti.location.path' "$ConfigJsonFile")
+else
+    JobId=""
+
+    [ -n "$opt_b" ] && BaselineT1NiftiTrimmedFile="$opt_b"
+    [ -n "$opt_c" ] && BaselineT2NiftiFile="$opt_c"
+
+    [ -n "$opt_r" ] && BaselineT1LeftSegmentationFile="$opt_r"
+    [ -n "$opt_s" ] && BaselineT1RightSegmentationFile="$opt_s"
+    [ -n "$opt_t" ] && BaselineT2LeftSegmentationFile="$opt_t"
+    [ -n "$opt_u" ] && BaselineT2RightSegmentationFile="$opt_u"
+
+    [ -n "$opt_f" ] && FollowupT1NiftiTrimmedFile="$opt_f"
+    [ -n "$opt_g" ] && FollowupT2NiftiFile="$opt_g"
+fi
 
 InputDir=/flywheel/v0/input
 TmpDir=/tmp/aloha
 
 [ -d "$TmpDir" ] || mkdir -p "$TmpDir"
 
-if [ -n "$opt_i" ]
+AlohaEngineArgs=()
+AlohaEngineArgs+=( -b "$BaselineT1NiftiTrimmedFile" )
+AlohaEngineArgs+=( -c "$BaselineT2NiftiFile" )
+
+AlohaEngineArgs+=( -r "$BaselineT1LeftSegmentationFile" )
+AlohaEngineArgs+=( -s "$BaselineT1RightSegmentationFile" )
+AlohaEngineArgs+=( -t "$BaselineT2LeftSegmentationFile" )
+AlohaEngineArgs+=( -u "$BaselineT2RightSegmentationFile" )
+
+AlohaEngineArgs+=( -f "$FollowupT1NiftiTrimmedFile" )
+AlohaEngineArgs+=( -g "$FollowupT2NiftiFile" )
+
+AlohaEngineArgs+=( -w "$TmpDir" )
+
+sys aloha_main.sh "${AlohaEngineArgs[@]}"
+ExitCode="$?"
+if [ "$ExitCode" != 0 ]
 then
-    ParentCount=$(fwget -1 6740a4d1f2eb9f113bdf6ec1 | jq -r '.parents[]' | wc -l)
-    if [ "$ParentCount" == 0 ]
-    then
-	echo "${CmdName} : -i '$opt_i' can not be found.  Exiting" 1>&2
+	echo "${CmdName} : aloha_main.sh failed '${ExitCode}'" 1>&2
 	exit 1
-    elif [ "$ParentCount" == 1 ]
-    then
-	SubjectIds=( $(sys fwget -1 -r "$opt_i" | jq -r '.subjects[]._id') )
-    elif [ "$ParentCount" == 2 ]
-    then
-	SubjectIds=( $opt_i )
-    else
-	echo "${CmdName} : -i '$opt_i' : unknown container type.  Exiting" 1>&2
-	exit 1
-    fi
-else
-    if ! [ -e "$ConfigJsonFile" ]
-    then
-	echo "${CmdName} : No Project, Subject Id provided and no config file.  Exiting" 1>&2
-	exit 1
-    fi		
-
-    SubjectIds=( $(jq -r '.job.id' "$ConfigJsonFile" | fwget -1 -j | jq -r '.parents.subject') )
 fi
 
-[ -n "$opt_v" ] && echo "SubjectIds = '${SubjectIds[@]}'" 1>&2
+AlohaLeftVolumeTxtFile="${TmpDir}/results/volumes_left.txt"
+AlohaRightVolumeTxtFile="${TmpDir}/results/volumes_right.txt"
 
-AlohaDriverArgs=( '-v' '-u' '-o' 'stdout,site' '-d' '-r' '-A' '-j' "$JobId")
-
-Stages=( 'VerifyInputs' )
-if [ -n "$opt_s" ]
-then
-    # *** Would be nice to accept a leading +|= to add or override
-    Stages=( $(echo "$opt_s" | sed 's/, */ /g') )
-    AlohaDriverArgs=( '-v' '-j' "$JobId" )
-else
-    ConfigStages=$(jq -r '.config.Stages | select(.)' "$ConfigJsonFile")
-    if [ -n "$ConfigStages" ] && (echo "$ConfigStages" | grep -v -q default)
-    then
-	Stages=( $(echo "$ConfigStages" | sed 's/, */ /g') )
-	AlohaDriverArgs=( '-v' '-j' "$JobId" )
-    fi
-fi
-
-for i in "${Stages[@]}"
-do
-	case "$i" in
-     	    VerifyAlohaInputs)
-		AlohaDriverArgs+=( '-u' '-o' 'stdout,site' )
-		;;
-	    
-	    CompileReport)
-		;;
-	    
-	    RunAloha)
-		AlohaDriverArgs+=( '-d' '-r' '-A' )
-		;;
-
-	    CalculateAtrophyRates)
-		AlohaDriverArgs+=( '-A' )
-	esac
-done
-
-if [ -n "$opt_m" ]
-then
-    AlohaDriverArgs+=( '-m' "$opt_m" )
-fi
-
-if [ -n "$opt_t" ]
-then
-    AlohaDriverArgs+=( '-t' )
-fi
-
-n=1
-for SubjectId in "${SubjectIds[@]}"
-do
-    echo "$SubjectId ${n}/${#SubjectIds[@]}" 1>&2
-    sys alohaDriver "${AlohaDriverArgs[@]}" "$SubjectId"
-done
+cp "$AlohaLeftVolumeTxtFile" "$AlohaRightVolumeTxtFile" "${FLYWHEEL}/output"

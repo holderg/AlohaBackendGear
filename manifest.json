@@ -11,9 +11,10 @@
     "PYTHONPATH": "/flywheel/v0/flywheel/lib",
     "PWD": "/flywheel/v0"
   },
+  "config": {},
   "custom": {
     "gear-builder": {
-      "image": "aloha:0.1.1",
+      "image": "aloha:0.1.9",
       "category": "analysis"
     },
     "flywheel": {
@@ -32,22 +33,22 @@
       "optional": false,
       "description": "Baseline T2 Right Nifti file"
     },
-    "BaselineT1NiftiLeftSegmentation": {
+    "BaselineT1LeftSegmentation": {
       "base": "file",
       "optional": false,
       "description": "Baseline T1 Left Segmentation Nifti file"
     },
-    "BaselineT1NiftiRightSegmentation": {
+    "BaselineT1RightSegmentation": {
       "base": "file",
       "optional": false,
       "description": "Baseline T1 Right Segmentation Nifti file"
     },
-    "BaselineT2NiftiLeftSegmentation": {
+    "BaselineT2LeftSegmentation": {
       "base": "file",
       "optional": false,
       "description": "Baseline T2 Left Segmentation Nifti file"
     },
-    "BaselineT2NiftiRightSegmentation": {
+    "BaselineT2RightSegmentation": {
       "base": "file",
       "optional": false,
       "description": "Baseline T2 Right Segmentation Nifti file"
@@ -67,10 +68,10 @@
       "read-only": false
     }
   },
-  "label": "Aloha",
+  "label": "Aloha Backend",
   "name": "alohabackend",
   "source": "",
   "url": "",
   "license": "MIT",
-  "version": "0.1.1"
+  "version": "0.1.9"
 }

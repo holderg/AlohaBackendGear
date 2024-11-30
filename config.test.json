@@ -1,12 +1,12 @@
 {
   "destination": {
-    "id": "674517ed54af7fb582b47b21",
+    "id": "674a289e2326b1f148b47e9c",
     "type": "analysis"
   },
   "inputs": {
-    "input-file": {
+    "BaselineT1NiftiTrimmed": {
       "hierarchy": {
-        "id": "674274f18c6dfc43b3cbbb22",
+        "id": "6748b2797d0548ff18c0f1d7",
         "type": "acquisition"
       },
       "object": {
@@ -14,6 +14,7 @@
         "mimetype": "application/octet-stream",
         "modality": "MR",
         "classification": {
+          "Features": [],
           "Intent": [
             "Structural"
           ],
@@ -29,31 +30,1383 @@
         "size": 22899488,
         "zip_member_count": null,
         "version": 1,
-        "file_id": "674292d4e3baa8833ecb8551",
+        "file_id": "67490fcab54b1630531cc35f",
         "origin": {
           "type": "job",
-          "id": "6742911ddef99352a8df6fb1"
+          "id": "67490dfa93ce7c659bb47d54"
         }
       },
       "location": {
-        "path": "/flywheel/v0/input/input-file/7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz",
+        "path": "/flywheel/v0/input/BaselineT1NiftiTrimmed/7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz",
         "name": "7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz"
+      },
+      "base": "file"
+    },
+    "BaselineT1LeftSegmentation": {
+      "hierarchy": {
+        "id": "6749fd5e3b9084c6ee1cc369",
+        "type": "analysis"
+      },
+      "object": {
+        "type": "nifti",
+        "mimetype": "application/octet-stream",
+        "modality": "SEG",
+        "classification": {
+          "Custom": [
+            "{\"GearName\":\"ashs\",\"GearVersion\":\"0.1.96\",\"GearId\":\"6740f2bdf9c4354ea8fc347f\",\"AnalysisId\":\"67490ffa2326b1f148b47e7e\",\"Atlas\":\"ASHS-PMC-T1\",\"T1Input\":{\"FileName\":\"7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz\",\"FileId\":\"67490fcab54b1630531cc35f\",\"FlywheelPath\":\"\"},\"T2Input\":{\"FileName\":\"null\",\"FileId\":\"null\",\"FlywheelPath\":\"\"}}"
+          ]
+        },
+        "tags": [
+          "Left",
+          "Heur",
+          "ASHS-PMC-T1"
+        ],
+        "info": {},
+        "size": 131644,
+        "zip_member_count": null,
+        "version": 1,
+        "file_id": "6749fd5e3b9084c6ee1cc36c",
+        "origin": {
+          "type": "job",
+          "id": "67490ffa2326b1f148b47e80"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/BaselineT1LeftSegmentation/7_anat_T1w_anat-T1w_20231116134951_7-trimmed_ASHS-PMC-T1_lfseg_heur_left.nii.gz",
+        "name": "7_anat_T1w_anat-T1w_20231116134951_7-trimmed_ASHS-PMC-T1_lfseg_heur_left.nii.gz"
+      },
+      "base": "file"
+    },
+    "BaselineT1RightSegmentation": {
+      "hierarchy": {
+        "id": "6749fd5e3b9084c6ee1cc369",
+        "type": "analysis"
+      },
+      "object": {
+        "type": "nifti",
+        "mimetype": "application/octet-stream",
+        "modality": "SEG",
+        "classification": {
+          "Custom": [
+            "{\"GearName\":\"ashs\",\"GearVersion\":\"0.1.96\",\"GearId\":\"6740f2bdf9c4354ea8fc347f\",\"AnalysisId\":\"67490ffa2326b1f148b47e7e\",\"Atlas\":\"ASHS-PMC-T1\",\"T1Input\":{\"FileName\":\"7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz\",\"FileId\":\"67490fcab54b1630531cc35f\",\"FlywheelPath\":\"\"},\"T2Input\":{\"FileName\":\"null\",\"FileId\":\"null\",\"FlywheelPath\":\"\"}}"
+          ]
+        },
+        "tags": [
+          "Right",
+          "Heur",
+          "ASHS-PMC-T1"
+        ],
+        "info": {},
+        "size": 132626,
+        "zip_member_count": null,
+        "version": 1,
+        "file_id": "6749fd5e3b9084c6ee1cc36d",
+        "origin": {
+          "type": "job",
+          "id": "67490ffa2326b1f148b47e80"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/BaselineT1RightSegmentation/7_anat_T1w_anat-T1w_20231116134951_7-trimmed_ASHS-PMC-T1_lfseg_heur_right.nii.gz",
+        "name": "7_anat_T1w_anat-T1w_20231116134951_7-trimmed_ASHS-PMC-T1_lfseg_heur_right.nii.gz"
+      },
+      "base": "file"
+    },
+    "BaselineT2Nifti": {
+      "hierarchy": {
+        "id": "6748b27879c5de42e31cc442",
+        "type": "acquisition"
+      },
+      "object": {
+        "type": "nifti",
+        "mimetype": "application/octet-stream",
+        "modality": "MR",
+        "classification": {
+          "Intent": [
+            "Structural"
+          ],
+          "Features": [],
+          "Measurement": [
+            "T2"
+          ]
+        },
+        "tags": [
+          "AlohaInput"
+        ],
+        "info": {
+          "header": {
+            "dicom": {
+              "FileMetaInformationGroupLength": 184,
+              "ImplementationClassUID": "1.2.40.0.13.1.1",
+              "ImplementationVersionName": "dcm4che-2.0",
+              "MediaStorageSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+              "MediaStorageSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111614340426187687331",
+              "TransferSyntaxUID": "1.2.840.10008.1.2.1",
+              "AcquisitionContrast": "UNKNOWN",
+              "AcquisitionDateTime": "20231116142601.765000",
+              "AcquisitionDuration": 480.452,
+              "AcquisitionNumber": 1,
+              "ApplicableSafetyStandardAgency": "IEC",
+              "B1rms": 2.241905450820923,
+              "BitsAllocated": 16,
+              "BitsStored": 12,
+              "BodyPartExamined": "BRAIN",
+              "BurnedInAnnotation": "NO",
+              "Columns": 448,
+              "ComplexImageComponent": "MAGNITUDE",
+              "ContentDate": "20231116",
+              "ContentQualification": "PRODUCT",
+              "ContentTime": "143404.645000",
+              "DeidentificationMethod": "Penn_BSC_profile_v3.0",
+              "DeviceSerialNumber": "167091",
+              "DimensionIndexSequence": [
+                {
+                  "DimensionIndexPointer": 2134102,
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023111614340426888087332",
+                  "FunctionalGroupPointer": 2134289
+                },
+                {
+                  "DimensionIndexPointer": 2134103,
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023111614340426888087332",
+                  "FunctionalGroupPointer": 2134289
+                },
+                {
+                  "DimensionIndexPointer": 2134312,
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023111614340426888087332",
+                  "FunctionalGroupPointer": 2134289
+                }
+              ],
+              "DimensionOrganizationSequence": [
+                {
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023111614340426888087332"
+                }
+              ],
+              "EchoPlanarPulseSequence": "NO",
+              "EchoPulseSequence": "SPIN",
+              "FrameOfReferenceUID": "1.3.12.2.1107.5.2.43.167091.2.20231116135309871.0.0.0",
+              "GeometryOfKSpaceTraversal": "RECTILINEAR",
+              "HighBit": 11,
+              "ImageType": [
+                "ORIGINAL",
+                "PRIMARY",
+                "M",
+                "NONE"
+              ],
+              "InstanceCreationDate": "20231116",
+              "InstanceCreationTime": "142606.385000",
+              "InstanceNumber": 1,
+              "InstitutionAddress": "Yale Blvd NE 1101,Albuquerque,Denver,US,87131",
+              "InstitutionName": "The Mind Institute",
+              "IssueDateOfImagingServiceRequest": "20231116",
+              "KSpaceFiltering": "NONE",
+              "LargestImagePixelValue": 4095,
+              "LossyImageCompression": "00",
+              "MRAcquisitionType": "2D",
+              "MagneticFieldStrength": 3,
+              "Manufacturer": "Siemens Healthineers",
+              "ManufacturerModelName": "MAGNETOM Prisma Fit",
+              "Modality": "MR",
+              "MultiPlanarExcitation": "NO",
+              "MultipleSpinEcho": "YES",
+              "NumberOfFrames": 60,
+              "NumberOfKSpaceTrajectories": 52,
+              "NumberOfTemporalPositions": 1,
+              "OversamplingPhase": "NONE",
+              "PatientAge": "032Y",
+              "PatientIdentityRemoved": "NO",
+              "PatientPosition": "HFS",
+              "PatientSex": "F",
+              "PatientWeight": 63.5029,
+              "PerFrameFunctionalGroupsSequence": {
+                "FrameContentSequence": [
+                  {
+                    "DimensionIndexValues": [
+                      1,
+                      1,
+                      1
+                    ],
+                    "FrameAcquisitionDateTime": "20231116142606.385000",
+                    "FrameAcquisitionDuration": 471367.5,
+                    "FrameAcquisitionNumber": 1,
+                    "FrameReferenceDateTime": "20231116142606.385000",
+                    "InStackPositionNumber": 1,
+                    "StackID": "1",
+                    "TemporalPositionIndex": 1
+                  }
+                ],
+                "FrameVOILUTSequence": [
+                  {
+                    "WindowCenter": 1024,
+                    "WindowWidth": 2134
+                  }
+                ],
+                "MRAveragesSequence": [
+                  {
+                    "NumberOfAverages": 1
+                  }
+                ],
+                "MREchoSequence": [
+                  {
+                    "EffectiveEchoTime": 80
+                  }
+                ],
+                "MRImageFrameTypeSequence": [
+                  {
+                    "AcquisitionContrast": "UNKNOWN",
+                    "ComplexImageComponent": "MAGNITUDE",
+                    "FrameType": [
+                      "ORIGINAL",
+                      "PRIMARY",
+                      "M",
+                      "NONE"
+                    ],
+                    "PixelPresentation": "MONOCHROME",
+                    "VolumeBasedCalculationTechnique": "NONE",
+                    "VolumetricProperties": "VOLUME"
+                  }
+                ],
+                "PixelMeasuresSequence": [
+                  {
+                    "PixelSpacing": [
+                      0.401786,
+                      0.401786
+                    ],
+                    "SliceThickness": 1.2,
+                    "SpacingBetweenSlices": 1.2
+                  }
+                ],
+                "PixelValueTransformationSequence": [
+                  {
+                    "RescaleIntercept": 0,
+                    "RescaleSlope": 1,
+                    "RescaleType": "US"
+                  }
+                ],
+                "PlaneOrientationSequence": [
+                  {
+                    "ImageOrientationPatient": [
+                      0.998202,
+                      -0.0123236,
+                      -0.0586598,
+                      -0.0503717,
+                      0.357977,
+                      -0.932371
+                    ]
+                  }
+                ],
+                "PlanePositionSequence": [
+                  {
+                    "ImagePositionPatient": [
+                      -87.7737,
+                      -67.1955,
+                      70.8839
+                    ]
+                  }
+                ]
+              },
+              "PerformedProcedureStepDescription": "CABBOTT^decode_ect6_20079",
+              "PerformedProcedureStepEndDate": "20231116",
+              "PerformedProcedureStepID": "US13bd776e07fc4e",
+              "PerformedProcedureStepStartDate": "20231116",
+              "PerformedProcedureStepStartTime": "134950.700000",
+              "PhaseContrast": "NO",
+              "PhotometricInterpretation": "MONOCHROME2",
+              "PixelPresentation": "MONOCHROME",
+              "PixelRepresentation": 0,
+              "PresentationLUTShape": "IDENTITY",
+              "ProtocolName": "anat-T2w_acq-2DHiResMTL",
+              "PulseSequenceName": "*tse2d1_9",
+              "RectilinearPhaseEncodeReordering": "LINEAR",
+              "ReferencedImageEvidenceSequence": [
+                {
+                  "ReferencedSeriesSequence": [
+                    {
+                      "ReferencedSOPSequence": [
+                        {
+                          "PurposeOfReferenceCodeSequence": [
+                            {
+                              "CodeMeaning": "Localizer",
+                              "CodeValue": "121311",
+                              "CodingSchemeDesignator": "DCM"
+                            }
+                          ],
+                          "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                          "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111613545944772421088"
+                        }
+                      ],
+                      "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111613545942261921063.0.0.0"
+                    },
+                    {
+                      "ReferencedSOPSequence": [
+                        {
+                          "PurposeOfReferenceCodeSequence": [
+                            {
+                              "CodeMeaning": "Localizer",
+                              "CodeValue": "121311",
+                              "CodingSchemeDesignator": "DCM"
+                            }
+                          ],
+                          "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                          "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111613545950688121092"
+                        }
+                      ],
+                      "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111613545942320421073.0.0.0"
+                    },
+                    {
+                      "ReferencedSOPSequence": [
+                        {
+                          "PurposeOfReferenceCodeSequence": [
+                            {
+                              "CodeMeaning": "Localizer",
+                              "CodeValue": "121311",
+                              "CodingSchemeDesignator": "DCM"
+                            }
+                          ],
+                          "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                          "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111614025818122122429"
+                        }
+                      ],
+                      "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111613560399162521350.0.0.0"
+                    }
+                  ],
+                  "StudyInstanceUID": "1.3.12.2.1107.5.2.43.167091.30000023111609581156000000011"
+                }
+              ],
+              "ReferencedPerformedProcedureStepSequence": [
+                {
+                  "ReferencedSOPClassUID": "1.2.840.10008.3.1.2.3.3",
+                  "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.30000023111609581156000000012"
+                }
+              ],
+              "ResonantNucleus": "1H",
+              "Rows": 448,
+              "SOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+              "SOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111614340426187687331",
+              "SamplesPerPixel": 1,
+              "SaturationRecovery": "NO",
+              "SegmentedKSpaceTraversal": "PARTIAL",
+              "SeriesDate": "20231116",
+              "SeriesDescription": "anat-T2w_acq-2DHiResMTL",
+              "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111614255224853086991.0.0.0",
+              "SeriesNumber": 18,
+              "SeriesTime": "143404.295000",
+              "SharedFunctionalGroupsSequence": [
+                {
+                  "FrameAnatomySequence": [
+                    {
+                      "AnatomicRegionSequence": [
+                        {
+                          "CodeMeaning": "Brain",
+                          "CodeValue": "T-A0100",
+                          "CodingSchemeDesignator": "SRT"
+                        }
+                      ],
+                      "FrameLaterality": "U"
+                    }
+                  ],
+                  "MRFOVGeometrySequence": [
+                    {
+                      "InPlanePhaseEncodingDirection": "ROW",
+                      "MRAcquisitionFrequencyEncodingSteps": 448,
+                      "MRAcquisitionPhaseEncodingStepsInPlane": 411,
+                      "PercentPhaseFieldOfView": 100,
+                      "PercentSampling": 91.7647
+                    }
+                  ],
+                  "MRImagingModifierSequence": [
+                    {
+                      "BloodSignalNulling": "NO",
+                      "MagnetizationTransfer": "NONE",
+                      "PixelBandwidth": 100,
+                      "Tagging": "NONE",
+                      "TransmitterFrequency": 123.251021
+                    }
+                  ],
+                  "MRModifierSequence": [
+                    {
+                      "FlowCompensation": "NONE",
+                      "InversionRecovery": "NO",
+                      "ParallelAcquisition": "NO",
+                      "PartialFourier": "NO",
+                      "SpatialPresaturation": "NONE",
+                      "SpectrallySelectedExcitation": "NONE",
+                      "T2Preparation": "NO"
+                    }
+                  ],
+                  "MRReceiveCoilSequence": [
+                    {
+                      "MultiCoilDefinitionSequence": [
+                        {
+                          "MultiCoilElementName": "H4",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H5",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H6",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H24",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H23",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H12",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H13",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H27",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H28",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H15",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H14",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H31",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H32",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H21",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H29",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H11",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H30",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H22",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H20",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H10",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H1",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H26",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H17",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H18",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H8",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H19",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H9",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H3",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H7",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H2",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H16",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H25",
+                          "MultiCoilElementUsed": "YES"
+                        }
+                      ],
+                      "QuadratureReceiveCoil": "NO",
+                      "ReceiveCoilManufacturerName": "NN",
+                      "ReceiveCoilName": "Head_32",
+                      "ReceiveCoilType": "MULTICOIL"
+                    }
+                  ],
+                  "MRSpatialSaturationSequence": [],
+                  "MRTimingAndRelatedParametersSequence": [
+                    {
+                      "EchoTrainLength": 9,
+                      "FlipAngle": 180,
+                      "GradientEchoTrainLength": 0,
+                      "GradientOutput": 0.7371864318847656,
+                      "GradientOutputType": "PER_NERVE_STIM",
+                      "OperatingModeSequence": [
+                        {
+                          "OperatingMode": "IEC_FIRST_LEVEL",
+                          "OperatingModeType": "GRADIENT"
+                        },
+                        {
+                          "OperatingMode": "IEC_NORMAL",
+                          "OperatingModeType": "RF"
+                        }
+                      ],
+                      "RFEchoTrainLength": 9,
+                      "RepetitionTime": 9240,
+                      "SpecificAbsorptionRateSequence": [
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_WHOLE_BODY",
+                          "SpecificAbsorptionRateValue": 0.37254107676959136
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_PARTIAL_BODY",
+                          "SpecificAbsorptionRateValue": 1.511896705400576
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_HEAD",
+                          "SpecificAbsorptionRateValue": 1.4963208291816368
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_LOCAL",
+                          "SpecificAbsorptionRateValue": 4.676002591192615
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "SMR_B1RMS",
+                          "SpecificAbsorptionRateValue": 2.2419053481259374
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "SMR_BORELOCAL",
+                          "SpecificAbsorptionRateValue": 3.225691732811908
+                        }
+                      ]
+                    }
+                  ],
+                  "MRTransmitCoilSequence": [
+                    {
+                      "TransmitCoilManufacturerName": "Siemens",
+                      "TransmitCoilName": "Body",
+                      "TransmitCoilType": "BODY"
+                    }
+                  ],
+                  "ReferencedImageSequence": [
+                    {
+                      "PurposeOfReferenceCodeSequence": [
+                        {
+                          "CodeMeaning": "Localizer",
+                          "CodeValue": "121311",
+                          "CodingSchemeDesignator": "DCM"
+                        }
+                      ],
+                      "ReferencedFrameNumber": 3,
+                      "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                      "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111613545944772421088"
+                    },
+                    {
+                      "PurposeOfReferenceCodeSequence": [
+                        {
+                          "CodeMeaning": "Localizer",
+                          "CodeValue": "121311",
+                          "CodingSchemeDesignator": "DCM"
+                        }
+                      ],
+                      "ReferencedFrameNumber": 135,
+                      "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                      "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111614025818122122429"
+                    },
+                    {
+                      "PurposeOfReferenceCodeSequence": [
+                        {
+                          "CodeMeaning": "Localizer",
+                          "CodeValue": "121311",
+                          "CodingSchemeDesignator": "DCM"
+                        }
+                      ],
+                      "ReferencedFrameNumber": 3,
+                      "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                      "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023111613545950688121092"
+                    }
+                  ]
+                }
+              ],
+              "SmallestImagePixelValue": 0,
+              "SoftwareVersions": "syngo MR XA30",
+              "SpacingBetweenSlices": 1.2,
+              "SpecificCharacterSet": "ISO_IR 100",
+              "SpectrallySelectedSuppression": "NONE",
+              "StationName": "MRC35245",
+              "SteadyStatePulseSequence": "NONE",
+              "StudyDate": "20231116",
+              "StudyDescription": "CABBOTT^decode_ect6_20079",
+              "StudyID": "f0adf08f-7a3f-44",
+              "StudyInstanceUID": "1.3.12.2.1107.5.2.43.167091.30000023111609581156000000011",
+              "StudyTime": "134950.700000",
+              "TimeOfFlightContrast": "NO",
+              "VolumeBasedCalculationTechnique": "NONE",
+              "VolumetricProperties": "VOLUME"
+            }
+          }
+        },
+        "size": 17246386,
+        "zip_member_count": null,
+        "version": 1,
+        "file_id": "67490fe6bef006a607161b1e",
+        "origin": {
+          "type": "job",
+          "id": "67490fdc79c5de42e31cc48e"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/BaselineT2Nifti/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18.nii.gz",
+        "name": "18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18.nii.gz"
+      },
+      "base": "file"
+    },
+    "BaselineT2LeftSegmentation": {
+      "hierarchy": {
+        "id": "6749fd5e3b9084c6ee1cc369",
+        "type": "analysis"
+      },
+      "object": {
+        "type": "nifti",
+        "mimetype": "application/octet-stream",
+        "modality": "SEG",
+        "classification": {
+          "Custom": [
+            "{\"GearName\":\"ashs\",\"GearVersion\":\"0.1.96\",\"GearId\":\"6740f2bdf9c4354ea8fc347f\",\"AnalysisId\":\"6749292c2a30f1997ec0f2b9\",\"Atlas\":\"ASHS-PMC-T2\",\"T1Input\":{\"FileName\":\"7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz\",\"FileId\":\"67490fcab54b1630531cc35f\",\"FlywheelPath\":\"\"},\"T2Input\":{\"FileName\":\"18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18.nii.gz\",\"FileId\":\"67490fe6bef006a607161b1e\",\"FlywheelPath\":\"\"}}"
+          ]
+        },
+        "tags": [
+          "Left",
+          "Heur",
+          "ASHS-PMC-T2"
+        ],
+        "info": {},
+        "size": 34008,
+        "zip_member_count": null,
+        "version": 1,
+        "file_id": "6749fd5e3b9084c6ee1cc36e",
+        "origin": {
+          "type": "job",
+          "id": "6749292c2a30f1997ec0f2bc"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/BaselineT2LeftSegmentation/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18_ASHS-PMC-T2_lfseg_heur_left.nii.gz",
+        "name": "18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18_ASHS-PMC-T2_lfseg_heur_left.nii.gz"
+      },
+      "base": "file"
+    },
+    "BaselineT2RightSegmentation": {
+      "hierarchy": {
+        "id": "6749fd5e3b9084c6ee1cc369",
+        "type": "analysis"
+      },
+      "object": {
+        "type": "nifti",
+        "mimetype": "application/octet-stream",
+        "modality": "SEG",
+        "classification": {
+          "Custom": [
+            "{\"GearName\":\"ashs\",\"GearVersion\":\"0.1.96\",\"GearId\":\"6740f2bdf9c4354ea8fc347f\",\"AnalysisId\":\"6749292c2a30f1997ec0f2b9\",\"Atlas\":\"ASHS-PMC-T2\",\"T1Input\":{\"FileName\":\"7_anat_T1w_anat-T1w_20231116134951_7-trimmed.nii.gz\",\"FileId\":\"67490fcab54b1630531cc35f\",\"FlywheelPath\":\"\"},\"T2Input\":{\"FileName\":\"18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18.nii.gz\",\"FileId\":\"67490fe6bef006a607161b1e\",\"FlywheelPath\":\"\"}}"
+          ]
+        },
+        "tags": [
+          "Right",
+          "Heur",
+          "ASHS-PMC-T2"
+        ],
+        "info": {},
+        "size": 33991,
+        "zip_member_count": null,
+        "version": 1,
+        "file_id": "6749fd5e3b9084c6ee1cc36f",
+        "origin": {
+          "type": "job",
+          "id": "6749292c2a30f1997ec0f2bc"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/BaselineT2RightSegmentation/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18_ASHS-PMC-T2_lfseg_heur_right.nii.gz",
+        "name": "18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18_ASHS-PMC-T2_lfseg_heur_right.nii.gz"
+      },
+      "base": "file"
+    },
+    "FollowupT1NiftiTrimmed": {
+      "hierarchy": {
+        "id": "6748b27e7d0548ff18c0f1e0",
+        "type": "acquisition"
+      },
+      "object": {
+        "type": "nifti",
+        "mimetype": "application/octet-stream",
+        "modality": "MR",
+        "classification": {
+          "Features": [],
+          "Intent": [
+            "Structural"
+          ],
+          "Measurement": [
+            "T1"
+          ]
+        },
+        "tags": [
+          "Trimmed",
+          "AlohaInput"
+        ],
+        "info": {},
+        "size": 22955668,
+        "zip_member_count": null,
+        "version": 1,
+        "file_id": "674938327f7081c6061cc43c",
+        "origin": {
+          "type": "job",
+          "id": "674936d67f7081c6061cc43b"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/FollowupT1NiftiTrimmed/7_anat_T1w_anat-T1w_20231219140211_7-trimmed.nii.gz",
+        "name": "7_anat_T1w_anat-T1w_20231219140211_7-trimmed.nii.gz"
+      },
+      "base": "file"
+    },
+    "FollowupT2Nifti": {
+      "hierarchy": {
+        "id": "6748b27d9c5608efd0161b54",
+        "type": "acquisition"
+      },
+      "object": {
+        "type": "nifti",
+        "mimetype": "application/octet-stream",
+        "modality": "MR",
+        "classification": {
+          "Intent": [
+            "Structural"
+          ],
+          "Features": [],
+          "Measurement": [
+            "T2"
+          ]
+        },
+        "tags": [
+          "AlohaInput"
+        ],
+        "info": {
+          "header": {
+            "dicom": {
+              "FileMetaInformationGroupLength": 184,
+              "ImplementationClassUID": "1.2.40.0.13.1.1",
+              "ImplementationVersionName": "dcm4che-2.0",
+              "MediaStorageSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+              "MediaStorageSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914445428081604186",
+              "TransferSyntaxUID": "1.2.840.10008.1.2.1",
+              "AcquisitionContrast": "UNKNOWN",
+              "AcquisitionDateTime": "20231219143651.772500",
+              "AcquisitionDuration": 480.452,
+              "AcquisitionNumber": 1,
+              "ApplicableSafetyStandardAgency": "IEC",
+              "B1rms": 2.240304708480835,
+              "BitsAllocated": 16,
+              "BitsStored": 12,
+              "BodyPartExamined": "BRAIN",
+              "BurnedInAnnotation": "NO",
+              "Columns": 448,
+              "ComplexImageComponent": "MAGNITUDE",
+              "ContentDate": "20231219",
+              "ContentQualification": "PRODUCT",
+              "ContentTime": "144454.621000",
+              "DeidentificationMethod": "Penn_BSC_profile_v3.0",
+              "DeviceSerialNumber": "167091",
+              "DimensionIndexSequence": [
+                {
+                  "DimensionIndexPointer": 2134102,
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023121914445428763004187",
+                  "FunctionalGroupPointer": 2134289
+                },
+                {
+                  "DimensionIndexPointer": 2134103,
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023121914445428763004187",
+                  "FunctionalGroupPointer": 2134289
+                },
+                {
+                  "DimensionIndexPointer": 2134312,
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023121914445428763004187",
+                  "FunctionalGroupPointer": 2134289
+                }
+              ],
+              "DimensionOrganizationSequence": [
+                {
+                  "DimensionOrganizationUID": "1.3.12.2.1107.5.2.43.167091.2023121914445428763004187"
+                }
+              ],
+              "EchoPlanarPulseSequence": "NO",
+              "EchoPulseSequence": "SPIN",
+              "FrameOfReferenceUID": "1.3.12.2.1107.5.2.43.167091.2.20231219140518646.0.0.0",
+              "GeometryOfKSpaceTraversal": "RECTILINEAR",
+              "HighBit": 11,
+              "ImageType": [
+                "ORIGINAL",
+                "PRIMARY",
+                "M",
+                "NONE"
+              ],
+              "InstanceCreationDate": "20231219",
+              "InstanceCreationTime": "143656.392500",
+              "InstanceNumber": 1,
+              "InstitutionAddress": "Yale Blvd NE 1101,Albuquerque,Denver,US,87131",
+              "InstitutionName": "The Mind Institute",
+              "IssueDateOfImagingServiceRequest": "20231219",
+              "KSpaceFiltering": "NONE",
+              "LargestImagePixelValue": 3680,
+              "LossyImageCompression": "00",
+              "MRAcquisitionType": "2D",
+              "MagneticFieldStrength": 3,
+              "Manufacturer": "Siemens Healthineers",
+              "ManufacturerModelName": "MAGNETOM Prisma Fit",
+              "Modality": "MR",
+              "MultiPlanarExcitation": "NO",
+              "MultipleSpinEcho": "YES",
+              "NumberOfFrames": 60,
+              "NumberOfKSpaceTrajectories": 52,
+              "NumberOfTemporalPositions": 1,
+              "OversamplingPhase": "NONE",
+              "PatientAge": "032Y",
+              "PatientIdentityRemoved": "NO",
+              "PatientPosition": "HFS",
+              "PatientSex": "F",
+              "PatientWeight": 61.2349,
+              "PerFrameFunctionalGroupsSequence": {
+                "FrameContentSequence": [
+                  {
+                    "DimensionIndexValues": [
+                      1,
+                      1,
+                      1
+                    ],
+                    "FrameAcquisitionDateTime": "20231219143656.392500",
+                    "FrameAcquisitionDuration": 471367.5,
+                    "FrameAcquisitionNumber": 1,
+                    "FrameReferenceDateTime": "20231219143656.392500",
+                    "InStackPositionNumber": 1,
+                    "StackID": "1",
+                    "TemporalPositionIndex": 1
+                  }
+                ],
+                "FrameVOILUTSequence": [
+                  {
+                    "WindowCenter": 1048,
+                    "WindowWidth": 2177
+                  }
+                ],
+                "MRAveragesSequence": [
+                  {
+                    "NumberOfAverages": 1
+                  }
+                ],
+                "MREchoSequence": [
+                  {
+                    "EffectiveEchoTime": 80
+                  }
+                ],
+                "MRImageFrameTypeSequence": [
+                  {
+                    "AcquisitionContrast": "UNKNOWN",
+                    "ComplexImageComponent": "MAGNITUDE",
+                    "FrameType": [
+                      "ORIGINAL",
+                      "PRIMARY",
+                      "M",
+                      "NONE"
+                    ],
+                    "PixelPresentation": "MONOCHROME",
+                    "VolumeBasedCalculationTechnique": "NONE",
+                    "VolumetricProperties": "VOLUME"
+                  }
+                ],
+                "PixelMeasuresSequence": [
+                  {
+                    "PixelSpacing": [
+                      0.401786,
+                      0.401786
+                    ],
+                    "SliceThickness": 1.2,
+                    "SpacingBetweenSlices": 1.2
+                  }
+                ],
+                "PixelValueTransformationSequence": [
+                  {
+                    "RescaleIntercept": 0,
+                    "RescaleSlope": 1,
+                    "RescaleType": "US"
+                  }
+                ],
+                "PlaneOrientationSequence": [
+                  {
+                    "ImageOrientationPatient": [
+                      0.999637,
+                      0.0144115,
+                      0.0227734,
+                      0.0126987,
+                      0.493453,
+                      -0.86968
+                    ]
+                  }
+                ],
+                "PlanePositionSequence": [
+                  {
+                    "ImagePositionPatient": [
+                      -94.7391,
+                      -85.0477,
+                      68.3425
+                    ]
+                  }
+                ]
+              },
+              "PerformedProcedureStepDescription": "CABBOTT^decode_ect6_20079",
+              "PerformedProcedureStepEndDate": "20231219",
+              "PerformedProcedureStepID": "USec1008c8fbf64e",
+              "PerformedProcedureStepStartDate": "20231219",
+              "PerformedProcedureStepStartTime": "140211.000000",
+              "PhaseContrast": "NO",
+              "PhotometricInterpretation": "MONOCHROME2",
+              "PixelPresentation": "MONOCHROME",
+              "PixelRepresentation": 0,
+              "PresentationLUTShape": "IDENTITY",
+              "ProtocolName": "anat-T2w_acq-2DHiResMTL",
+              "PulseSequenceName": "*tse2d1_9",
+              "RectilinearPhaseEncodeReordering": "LINEAR",
+              "ReferencedImageEvidenceSequence": [
+                {
+                  "ReferencedSeriesSequence": [
+                    {
+                      "ReferencedSOPSequence": [
+                        {
+                          "PurposeOfReferenceCodeSequence": [
+                            {
+                              "CodeMeaning": "Localizer",
+                              "CodeValue": "121311",
+                              "CodingSchemeDesignator": "DCM"
+                            }
+                          ],
+                          "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                          "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914061497796336524"
+                        }
+                      ],
+                      "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914060944210536517.0.0.0"
+                    },
+                    {
+                      "ReferencedSOPSequence": [
+                        {
+                          "PurposeOfReferenceCodeSequence": [
+                            {
+                              "CodeMeaning": "Localizer",
+                              "CodeValue": "121311",
+                              "CodingSchemeDesignator": "DCM"
+                            }
+                          ],
+                          "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                          "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914063999369737847"
+                        }
+                      ],
+                      "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914063991067237828.0.0.0"
+                    },
+                    {
+                      "ReferencedSOPSequence": [
+                        {
+                          "PurposeOfReferenceCodeSequence": [
+                            {
+                              "CodeMeaning": "Localizer",
+                              "CodeValue": "121311",
+                              "CodingSchemeDesignator": "DCM"
+                            }
+                          ],
+                          "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                          "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914144247266039188"
+                        }
+                      ],
+                      "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914074776444338105.0.0.0"
+                    }
+                  ],
+                  "StudyInstanceUID": "1.3.12.2.1107.5.2.43.167091.30000023121910154640800000009"
+                }
+              ],
+              "ReferencedPerformedProcedureStepSequence": [
+                {
+                  "ReferencedSOPClassUID": "1.2.840.10008.3.1.2.3.3",
+                  "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.30000023121910154640800000010"
+                }
+              ],
+              "ResonantNucleus": "1H",
+              "Rows": 448,
+              "SOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+              "SOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914445428081604186",
+              "SamplesPerPixel": 1,
+              "SaturationRecovery": "NO",
+              "SegmentedKSpaceTraversal": "PARTIAL",
+              "SeriesDate": "20231219",
+              "SeriesDescription": "anat-T2w_acq-2DHiResMTL",
+              "SeriesInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914364266940903845.0.0.0",
+              "SeriesNumber": 18,
+              "SeriesTime": "144454.311000",
+              "SharedFunctionalGroupsSequence": [
+                {
+                  "FrameAnatomySequence": [
+                    {
+                      "AnatomicRegionSequence": [
+                        {
+                          "CodeMeaning": "Brain",
+                          "CodeValue": "T-A0100",
+                          "CodingSchemeDesignator": "SRT"
+                        }
+                      ],
+                      "FrameLaterality": "U"
+                    }
+                  ],
+                  "MRFOVGeometrySequence": [
+                    {
+                      "InPlanePhaseEncodingDirection": "ROW",
+                      "MRAcquisitionFrequencyEncodingSteps": 448,
+                      "MRAcquisitionPhaseEncodingStepsInPlane": 411,
+                      "PercentPhaseFieldOfView": 100,
+                      "PercentSampling": 91.7647
+                    }
+                  ],
+                  "MRImagingModifierSequence": [
+                    {
+                      "BloodSignalNulling": "NO",
+                      "MagnetizationTransfer": "NONE",
+                      "PixelBandwidth": 100,
+                      "Tagging": "NONE",
+                      "TransmitterFrequency": 123.25098
+                    }
+                  ],
+                  "MRModifierSequence": [
+                    {
+                      "FlowCompensation": "NONE",
+                      "InversionRecovery": "NO",
+                      "ParallelAcquisition": "NO",
+                      "PartialFourier": "NO",
+                      "SpatialPresaturation": "NONE",
+                      "SpectrallySelectedExcitation": "NONE",
+                      "T2Preparation": "NO"
+                    }
+                  ],
+                  "MRReceiveCoilSequence": [
+                    {
+                      "MultiCoilDefinitionSequence": [
+                        {
+                          "MultiCoilElementName": "H4",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H5",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H6",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H24",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H23",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H12",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H13",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H27",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H28",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H15",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H14",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H31",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H32",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H21",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H29",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H11",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H30",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H22",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H20",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H10",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H1",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H26",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H17",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H18",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H8",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H19",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H9",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H3",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H7",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H2",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H16",
+                          "MultiCoilElementUsed": "YES"
+                        },
+                        {
+                          "MultiCoilElementName": "H25",
+                          "MultiCoilElementUsed": "YES"
+                        }
+                      ],
+                      "QuadratureReceiveCoil": "NO",
+                      "ReceiveCoilManufacturerName": "NN",
+                      "ReceiveCoilName": "Head_32",
+                      "ReceiveCoilType": "MULTICOIL"
+                    }
+                  ],
+                  "MRSpatialSaturationSequence": [],
+                  "MRTimingAndRelatedParametersSequence": [
+                    {
+                      "EchoTrainLength": 9,
+                      "FlipAngle": 180,
+                      "GradientEchoTrainLength": 0,
+                      "GradientOutput": 0.732154369354248,
+                      "GradientOutputType": "PER_NERVE_STIM",
+                      "OperatingModeSequence": [
+                        {
+                          "OperatingMode": "IEC_FIRST_LEVEL",
+                          "OperatingModeType": "GRADIENT"
+                        },
+                        {
+                          "OperatingMode": "IEC_NORMAL",
+                          "OperatingModeType": "RF"
+                        }
+                      ],
+                      "RFEchoTrainLength": 9,
+                      "RepetitionTime": 9240,
+                      "SpecificAbsorptionRateSequence": [
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_WHOLE_BODY",
+                          "SpecificAbsorptionRateValue": 0.46768417265170636
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_PARTIAL_BODY",
+                          "SpecificAbsorptionRateValue": 1.7596420859890483
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_HEAD",
+                          "SpecificAbsorptionRateValue": 1.790041402067516
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "IEC_LOCAL",
+                          "SpecificAbsorptionRateValue": 5.5938793814609875
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "SMR_B1RMS",
+                          "SpecificAbsorptionRateValue": 2.240304813300276
+                        },
+                        {
+                          "SpecificAbsorptionRateDefinition": "SMR_BORELOCAL",
+                          "SpecificAbsorptionRateValue": 3.353128147216215
+                        }
+                      ]
+                    }
+                  ],
+                  "MRTransmitCoilSequence": [
+                    {
+                      "TransmitCoilManufacturerName": "Siemens",
+                      "TransmitCoilName": "Body",
+                      "TransmitCoilType": "BODY"
+                    }
+                  ],
+                  "ReferencedImageSequence": [
+                    {
+                      "PurposeOfReferenceCodeSequence": [
+                        {
+                          "CodeMeaning": "Localizer",
+                          "CodeValue": "121311",
+                          "CodingSchemeDesignator": "DCM"
+                        }
+                      ],
+                      "ReferencedFrameNumber": 131,
+                      "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                      "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914144247266039188"
+                    },
+                    {
+                      "PurposeOfReferenceCodeSequence": [
+                        {
+                          "CodeMeaning": "Localizer",
+                          "CodeValue": "121311",
+                          "CodingSchemeDesignator": "DCM"
+                        }
+                      ],
+                      "ReferencedFrameNumber": 2,
+                      "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                      "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914061497796336524"
+                    },
+                    {
+                      "PurposeOfReferenceCodeSequence": [
+                        {
+                          "CodeMeaning": "Localizer",
+                          "CodeValue": "121311",
+                          "CodingSchemeDesignator": "DCM"
+                        }
+                      ],
+                      "ReferencedFrameNumber": 3,
+                      "ReferencedSOPClassUID": "1.2.840.10008.5.1.4.1.1.4.1",
+                      "ReferencedSOPInstanceUID": "1.3.12.2.1107.5.2.43.167091.2023121914063999369737847"
+                    }
+                  ]
+                }
+              ],
+              "SmallestImagePixelValue": 0,
+              "SoftwareVersions": "syngo MR XA30",
+              "SpacingBetweenSlices": 1.2,
+              "SpecificCharacterSet": "ISO_IR 100",
+              "SpectrallySelectedSuppression": "NONE",
+              "StationName": "MRC35245",
+              "SteadyStatePulseSequence": "NONE",
+              "StudyDate": "20231219",
+              "StudyDescription": "CABBOTT^decode_ect6_20079",
+              "StudyID": "2c0f2822-a357-47",
+              "StudyInstanceUID": "1.3.12.2.1107.5.2.43.167091.30000023121910154640800000009",
+              "StudyTime": "140211.000000",
+              "TimeOfFlightContrast": "NO",
+              "VolumeBasedCalculationTechnique": "NONE",
+              "VolumetricProperties": "VOLUME"
+            }
+          }
+        },
+        "size": 17398209,
+        "zip_member_count": null,
+        "version": 1,
+        "file_id": "6749384b2a30f1997ec0f2bf",
+        "origin": {
+          "type": "job",
+          "id": "6749383fae5145dc83c0f24a"
+        }
+      },
+      "location": {
+        "path": "/flywheel/v0/input/FollowupT2Nifti/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231219140211_18.nii.gz",
+        "name": "18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231219140211_18.nii.gz"
       },
       "base": "file"
     },
     "api-key": {
       "base": "api-key",
-      "key": "upenn.flywheel.io:djEHk--bPSQ_RVFPCQ5ptYa9A4gNcq2Jo0j7Ceq5ipgq3WWti08vrgeuA"
+      "key": "upenn.flywheel.io:djEboVN1j9padGrq6I2i7rPphqUja9vT7ty1UbmxGpDUo7apjYSKwcRVg"
     }
   },
   "config": {},
   "job": {
-    "id": "674517ee54af7fb582b47b23",
+    "id": "674a289e2326b1f148b47ea5",
     "gear_info": {
-      "id": "674517547d0548ff18c0eead",
+      "id": "674a284f79c5de42e31cc4a6",
       "category": "analysis",
-      "name": "aloha",
-      "version": "0.1.4",
+      "name": "alohabackend",
+      "version": "0.1.6",
       "capabilities": null
     }
   }
