@@ -101,3 +101,7 @@ AlohaLeftVolumeTxtFile="${TmpDir}/results/volumes_left.txt"
 AlohaRightVolumeTxtFile="${TmpDir}/results/volumes_right.txt"
 
 cp "$AlohaLeftVolumeTxtFile" "$AlohaRightVolumeTxtFile" "${FLYWHEEL}/output"
+
+sys cat "$AlohaLeftVolumeTxtFile" 
+sys cat "$AlohaRightVolumeTxtFile" 
+
