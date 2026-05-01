@@ -1,4 +1,4 @@
-FROM pyushkevich/tk:2023a  as base
+FROM pyushkevich/tk:2023a  AS base
 
 ENV FLYWHEEL=/flywheel/v0
 WORKDIR ${FLYWHEEL}
@@ -15,7 +15,12 @@ RUN apt install -y libopenblas-dev bc libxt6 jq csvkit
 COPY requirements.txt ${FLYWHEEL}/
 RUN pip install -r requirements.txt
 
-COPY run config.test.json ${FLYWHEEL}/ 
+COPY				   \
+	aloha_qc_qsub.sh	   \
+	config.test.json	   \
+	downloadConfigFiles        \
+	run			   \
+	${FLYWHEEL}/
 
 RUN cd ${FLYWHEEL}; git clone https://github.com/brainsciencecenter/flywheel.git; cd flywheel; git config pull.rebase false; git pull
 

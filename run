@@ -3,6 +3,7 @@
 CmdName=$(basename "$0")
 Syntax="${CmdName} [-c config][-n][-v] {-b BaselineT1NiftiTrimmed}{-c BaselineT2Nifti}{-r BaselineT1LeftSegmentation}{-s BaselineT1RightSegmentation}{-t BaselineT2LeftSegmentation}{-u BaselineT2RightSegmentation}{-f FollowupT1NiftiTrimmed}{-g FollowupT2Nifti}"
 
+#         -C ConfigJsonFile
 #         -b image          Filename of baseline 3D gradient echo MRI (ALOHA_BL_MPRAGE, T1w)
 #         -c image          Filename of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE, T2w)
 #
