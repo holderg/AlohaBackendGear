@@ -2,8 +2,8 @@
 
 
 #
-# Example on pmacs
-# ./aloha_qc_qsub.sh -a /project/hippogang_2/pauly/longi_for_ashs_xv/test_aloha -b 2017-07-05 -f 2019-08-27 -s 041_S_4051 
+# Example:
+# bash -x aloha_qc_qsub2 -a /data/holder/Aloha/input/aloha -b /data/holder/Aloha/input/Baseline/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18.nii.gz -f /data/holder/Aloha/input/Followup/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231219140211_18.nii.gz -L /data/holder/Aloha/input/Baseline/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18_ASHS-PMC-T2_lfseg_heur_left.nii.gz -R /data/holder/Aloha/input/Baseline/18_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20231116134951_18_ASHS-PMC-T2_lfseg_heur_right.nii.gz -s M90195869 
 
 
 #
@@ -12,7 +12,7 @@
 #
 
 CmdName=$(basename "$0")
-Syntax="${CmdName} [-a AlohaDir][-b BaselineDir][-f FollowupDir][-n][-s Subject][-v]"
+Syntax="${CmdName} [-a AlohaDir][-b BaseLineT2File][-f FollowupT2File][-L BaseLineLeftSegFile][-l FollowupLeftSegFile][-n][-R BaselineRightSegFile][-r FollowupRightSegFile][-s Subject][-v]"
 
 #
 # *** Missing Things:
@@ -50,7 +50,7 @@ function aloha_qc_qsub()
 
         # Take the baseline and followup T2 segmentations. They should align well in halfway space
         SEG_BL=${WORK}/${TP_BL}/preproc/${side}_fineseg_t2.nii.gz
-#        SEG_FU=${WORK}/${TP_FU}/preproc/${side}_fineseg_t2.nii.gz
+        SEG_FU=${WORK}/${TP_FU}/preproc/${side}_fineseg_t2.nii.gz
 
         # Upsample the T2 images for ALOHA
         c3d ${INPUT}/${TP_BL}/t2_img.nii.gz -resample 100x100x500% -type ushort -o ${SDIR}/t2_bl_iso.nii.gz
@@ -68,7 +68,7 @@ function aloha_qc_qsub()
             -o $SDIR/t2_fu_om.nii.gz
 
 #       c3d $REF_FU_OM $REF_FU $SDIR/seg_fu.nii.gz -reslice-identity -copy-transform -thresh 0.5 inf 1 0 \
-#            -o $SDIR/seg_futrimom.nii.gz
+            -o $SDIR/seg_futrimom.nii.gz
     
         # Transform the fixed image to the halfway space
         greedy -d 3 -threads 1 \
@@ -81,9 +81,9 @@ function aloha_qc_qsub()
         greedy -d 3 -threads 1 \
             -rf $ALOHADIR/deformable/hwtrimdef_${side}.nii.gz \
             -rm $SDIR/t2_fu_om.nii.gz $SDIR/futrimom_affine_to_hw.nii.gz \
-             -r $ALOHADIR/deformable/tse_global_long_${side}_omRAS_half.mat
-#            -ri LABEL 0.2mm -rm $SDIR/seg_futrimom.nii.gz $SDIR/seg_futrimom_affine_to_hw.nii.gz \
-           
+            -r $ALOHADIR/deformable/tse_global_long_${side}_omRAS_half.mat
+#           -ri LABEL 0.2mm -rm $SDIR/seg_futrimom.nii.gz $SDIR/seg_futrimom_affine_to_hw.nii.gz \
+
         # Generate a warp by combining xyz components from ANTS
         c3d $ALOHADIR/deformable/tse_antsreg3d_${side}Warpxvec.nii.gz \
             $ALOHADIR/deformable/tse_antsreg3d_${side}Warpyvec.nii.gz \
@@ -94,7 +94,7 @@ function aloha_qc_qsub()
         greedy -d 3 -threads 1 \
             -rf $ALOHADIR/deformable/hwtrimdef_${side}.nii.gz \
             -rm $SDIR/t2_fu_om.nii.gz $SDIR/futrimom_warped_to_hw.nii.gz \
-             -r $SDIR/tse_antsreg3d_${side}_warp.nii.gz $ALOHADIR/deformable/tse_global_long_${side}_omRAS_half.mat
+            -r $SDIR/tse_antsreg3d_${side}_warp.nii.gz $ALOHADIR/deformable/tse_global_long_${side}_omRAS_half.mat
 #           -ri LABEL 0.2mm -rm $SDIR/seg_futrimom.nii.gz $SDIR/seg_futrimom_warped_to_hw.nii.gz \
 
         # Compute overlap between the segmentations in halfway space
@@ -162,7 +162,7 @@ function aloha_qc_qsub()
 #    OVL_AL=$(cat $QCDIR/overlap_affine_left.txt | sed -e "s/,//g" | awk '{print $6}')
 #    OVL_WL=$(cat $QCDIR/overlap_warped_left.txt | sed -e "s/,//g" | awk '{print $6}')
 #    OVL_AR=$(cat $QCDIR/overlap_affine_right.txt | sed -e "s/,//g" | awk '{print $6}')
-    OVL_WR=$(cat $QCDIR/overlap_warped_right.txt | sed -e "s/,//g" | awk '{print $6}')
+#    OVL_WR=$(cat $QCDIR/overlap_warped_right.txt | sed -e "s/,//g" | awk '{print $6}')
     NCC_AL=$(cat $QCDIR/ncc_affine_left.txt | awk '$1==1 {print $2}')
     NCC_WL=$(cat $QCDIR/ncc_warped_left.txt | awk '$1==1 {print $2}')
     NCC_AR=$(cat $QCDIR/ncc_affine_right.txt | awk '$1==1 {print $2}')
@@ -172,10 +172,10 @@ function aloha_qc_qsub()
 
 }
 
-while getopts 'a:b:f:l:r:n:s:v' arg
+while getopts 'a:b:f:L:l:R:r:n:s:v' arg
 do
     case "$arg" in
-	a|b|f|l|n|r|s|v)
+	a|b|f|L|l|n|R|r|s|v)
 	    eval "opt_${arg}='${OPTARG:=1}'"
 	    ;;
 	*)
@@ -235,8 +235,23 @@ RightBlSegDir=$(dirname "$RightBlSegFile")
 [ -e "$LeftBlSegDir" ] || mkdir -p "$LeftBlSegDir"
 [ -e "$RightBlSegDir" ] || mkdir -p "$RightBlSegDir"
 
-[ -e "$LeftBlSegFile" ] || cp "$opt_l" "$LeftBlSegFile"
-[ -e "$RightBlSegFile" ] || cp "$opt_r" "$RightBlSegFile"
+[ -e "$LeftBlSegFile" ] || cp "$opt_L" "$LeftBlSegFile"
+[ -e "$RightBlSegFile" ] || cp "$opt_R" "$RightBlSegFile"
+
+#
+# Alohabackend doesn not produce followup T2 segmented left/right images
+#
+#LeftFuSegFile="${WORK}/${TP_FU}/preproc/left_fineseg_t2.nii.gz"
+#RightFuSegFile="${WORK}/${TP_FU}/preproc/right_fineseg_t2.nii.gz"
+#LeftFuSegDir=$(dirname "$LeftFuSegFile")
+#RightFuSegDir=$(dirname "$RightFuSegFile")
+
+#[ -e "$LeftFuSegDir" ] || mkdir -p "$LeftFuSegDir"
+#[ -e "$RightFuSegDir" ] || mkdir -p "$RightFuSegDir"
+
+#[ -e "$LeftFuSegFile" ] || cp "$opt_l" "$LeftFuSegFile"
+#[ -e "$RightFuSegFile" ] || cp "$opt_r" "$RightFuSegFile"
+
 
 rsync -a "${opt_a}/" "${AlohaDir}/"
 
