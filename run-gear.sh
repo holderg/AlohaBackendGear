@@ -9,8 +9,8 @@ FlywheelConfigDir="/home/${USER}/.config/flywheel"
 # Command:
 docker run --rm -it --entrypoint='/bin/bash'\
 	-e FLYWHEEL=/flywheel/v0\
-        -v ${FlywheelConfigDir}":/root/.config/flywheel \
-	-v ${BASEDIR}/input:/flywheel/v0/input\
-	-v ${BASEDIR}/output:/flywheel/v0/output\
-	$IMAGE
+        -v "${FlywheelConfigDir}":/root/.config/flywheel \
+	-v "${BASEDIR}/input":/flywheel/v0/input\
+	-v "${BASEDIR}/output":/flywheel/v0/output\
+	"$IMAGE"
 
