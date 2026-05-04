@@ -7,7 +7,7 @@ BASEDIR=/data/${USER}/Aloha
 
 FlywheelConfigDir="/home/${USER}/.config/flywheel"
 
-echo "Using '$BASEDIR' for Flywheel input/output directories and '$FlywheelConfigDir' for Flywheel credentials'
+echo "Using '$BASEDIR' for Flywheel input/output directories and '$FlywheelConfigDir' for Flywheel credentials"
 
 # Command:
 docker run --rm -it --entrypoint='/bin/bash'\
