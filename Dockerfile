@@ -12,6 +12,8 @@ RUN apt update
 RUN apt install -y			\
 	bc				\
 	csvkit				\
+	curl				\
+	git				\
 	jq				\
     	libopenblas-dev			\
 	libxt6				\
