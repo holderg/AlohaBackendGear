@@ -1,66 +1,64 @@
 #!/bin/bash
 
+
+#
+# Example:
+# bash -x aloha_qc_qsub.sh -B "2023-11-16" -F "2023-12-19" -a /tmp/aloha -b ${FLYWHEEL}/input/BaselineT1NiftiTrimmed/7_anat_T1w_anat-T1w_20240103080739_7-trimmed.nii.gz  -f ${FLYWHEEL}/input/FollowupT1NiftiTrimmed/8_anat_T1w_anat-T1w_20240126091534_8-trimmed.nii.gz -L ${FLYWHEEL}/input/BaselineT2LeftSegmentation/16_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240103080739_16_ASHS-PMC-T2_lfseg_heur_left.nii.gz -R ${FLYWHEEL}/input/BaselineT2RightSegmentation/16_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240103080739_16_ASHS-PMC-T2_lfseg_heur_right.nii.gz -s M90195869 
+
+
 #
 # From:
 # bscsub:/project/hippogang_2/pauly/longi_for_ashs_xv/test_aloha/runme.sh
 #
 
 CmdName=$(basename "$0")
-Syntax="${CmdName} [-a AlohaDir][-b BaselineT2Image][-f FollupT2Image][-l LeftT2SegImage][-r RightT2SegImage][-n][-s Subject][-v]"
+Syntax="${CmdName} [-a AlohaDir][-B BaselineDate][-b BaseLineT2File][-F FollowupDate][-f FollowupT2File][-L BaseLineLeftSegFile][-l FollowupLeftSegFile][-n][-R BaselineRightSegFile][-r FollowupRightSegFile][-s Subject][-v]"
 
-# ${ROOT}/input/${SUBJECT}/{Date1,Date2,Date3} directory
-# $TMPDIR env variable
 #
+# *** Missing Things:
+# ROOT - /project/hippogang_2/pauly/longi_for_ashs_xv/test_aloha
+# SUBJECT -
+#    ${ROOT}/input/${SUBJECT}
+#    ${ROOT}/work/${SUBJECT}
+# $TP_BL/t{1,2}_img.nii.gz
+# $TP_FU/t{1,2}_img.nii.gz
+
 
 function aloha_qc_qsub()
 {
-    SUBJECT="${1?}"
-    BL_T2="${2?}"
-    BL_T2SegLeftFile="${3?}"
-    BL_T2SegRightFile="${4?}"
-    FU_T2=${5?}
-    ALOHADIR=${6}
+    SUBJECT=${1?}
+    TP_BL=${2?}
+    TP_FU=${3?}
+    ALOHADIR=${4}
 
-    TmpDir=/tmp/AlohaQc
-    QCDIR="${TmpDir}/qc"
-    QcAllDir="${TmpDir}/qc_all"
+    INPUT=${ROOT}/input/${SUBJECT}
+    WORK=${ROOT}/work/${SUBJECT}
+    if [[ ! $ALOHADIR ]]; then
+        ALOHADIR=${WORK}/aloha_${SUBJECT}_${TP_BL}_${TP_FU}
+    fi
 
-    #TP_BL is the baseline date in YYYY-MM-DD format
-    #TP_FL is the follup date in YYYY-MM-DD format
-    TP_BL=2023-11-16
-    TP_FU=2023-12-19
-
-    [ -e "$TmpDir" ] || mkdir -p "$TmpDir"
-    [ -e "$QCDIR" ] || mkdir -p "$QCDIR"
-    [ -e "$QcAllDir" ] || mkdir -p "$QcAllDir"
+    QCDIR=$ALOHADIR/qc
+    mkdir -p $QCDIR
+    mkdir -p tmp/all_qc
 
     # Generate QC images for ALOHA
     for side in left right; do
 
         # Create a temp directory for this side
-        SDIR=$TmpDir/qc_${side}
-        [ -e "$SDIR" ] || mkdir -p "$SDIR"
+        SDIR=$TMPDIR/qc_${side}
+        mkdir -p $SDIR
 
         # Take the baseline and followup T2 segmentations. They should align well in halfway space
-#        SEG_BL=${WORK}/${TP_BL}/preproc/${side}_fineseg_t2.nii.gz # tse_blseg_left.nii.gz
-#        SEG_FU=${WORK}/${TP_FU}/preproc/${side}_fineseg_t2.nii.gz # 
-	if [ "$side" == 'left' ]
-	then
-	    SEG_BL="$BL_T2SegLeftFile"
-	else
-	    SEG_BL="$BL_T2SegRightFile"
-	fi
+        SEG_BL=${WORK}/${TP_BL}/preproc/${side}_fineseg_t2.nii.gz
+        SEG_FU=${WORK}/${TP_FU}/preproc/${side}_fineseg_t2.nii.gz
 
-        # Upsample the T2 images for ALOHA - see /tmp/aloha/tse_bl*.nii.gz and tse_fu*.nii.gz
-
-        c3d "$BL_T2" -resample 100x100x500% -type ushort -o ${SDIR}/t2_bl_iso.nii.gz
-        c3d "$FU_T2" -resample 100x100x500% -type ushort -o ${SDIR}/t2_fu_iso.nii.gz
-        # c3d ${INPUT}/${TP_BL}/t2_img.nii.gz -resample 100x100x500% -type ushort -o ${SDIR}/t2_bl_iso.nii.gz
-        #c3d ${INPUT}/${TP_FU}/t2_img.nii.gz -resample 100x100x500% -type ushort -o ${SDIR}/t2_fu_iso.nii.gz
+        # Upsample the T2 images for ALOHA
+        c3d ${INPUT}/${TP_BL}/t2_img.nii.gz -resample 100x100x500% -type ushort -o ${SDIR}/t2_bl_iso.nii.gz
+        c3d ${INPUT}/${TP_FU}/t2_img.nii.gz -resample 100x100x500% -type ushort -o ${SDIR}/t2_fu_iso.nii.gz
 
         # Binarize the segmentations, we don't want all the labels
         c3d $SEG_BL -replace 1 100 3 100 4 100 5 100 7 100 8 100 -thresh 100 inf 1 0 -o $SDIR/seg_bl.nii.gz
-        # c3d $SEG_FU -replace 1 100 3 100 4 100 5 100 7 100 8 100 -thresh 100 inf 1 0 -o $SDIR/seg_fu.nii.gz
+#        c3d $SEG_FU -replace 1 100 3 100 4 100 5 100 7 100 8 100 -thresh 100 inf 1 0 -o $SDIR/seg_fu.nii.gz
 
         # Crop the moving image and match its origin to the cropped fixed image, this
         # should be done for both the image and segmentation
@@ -69,8 +67,8 @@ function aloha_qc_qsub()
         c3d $REF_FU_OM $REF_FU ${SDIR}/t2_fu_iso.nii.gz -reslice-identity -copy-transform \
             -o $SDIR/t2_fu_om.nii.gz
 
-        # c3d $REF_FU_OM $REF_FU $SDIR/seg_fu.nii.gz -reslice-identity -copy-transform -thresh 0.5 inf 1 0 \
-        #    -o $SDIR/seg_futrimom.nii.gz
+#       c3d $REF_FU_OM $REF_FU $SDIR/seg_fu.nii.gz -reslice-identity -copy-transform -thresh 0.5 inf 1 0 \
+#            -o $SDIR/seg_futrimom.nii.gz
     
         # Transform the fixed image to the halfway space
         greedy -d 3 -threads 1 \
@@ -84,8 +82,8 @@ function aloha_qc_qsub()
             -rf $ALOHADIR/deformable/hwtrimdef_${side}.nii.gz \
             -rm $SDIR/t2_fu_om.nii.gz $SDIR/futrimom_affine_to_hw.nii.gz \
             -r $ALOHADIR/deformable/tse_global_long_${side}_omRAS_half.mat
-#            -ri LABEL 0.2mm -rm $SDIR/seg_futrimom.nii.gz $SDIR/seg_futrimom_affine_to_hw.nii.gz \
-            
+#           -ri LABEL 0.2mm -rm $SDIR/seg_futrimom.nii.gz $SDIR/seg_futrimom_affine_to_hw.nii.gz \
+
         # Generate a warp by combining xyz components from ANTS
         c3d $ALOHADIR/deformable/tse_antsreg3d_${side}Warpxvec.nii.gz \
             $ALOHADIR/deformable/tse_antsreg3d_${side}Warpyvec.nii.gz \
@@ -97,7 +95,7 @@ function aloha_qc_qsub()
             -rf $ALOHADIR/deformable/hwtrimdef_${side}.nii.gz \
             -rm $SDIR/t2_fu_om.nii.gz $SDIR/futrimom_warped_to_hw.nii.gz \
             -r $SDIR/tse_antsreg3d_${side}_warp.nii.gz $ALOHADIR/deformable/tse_global_long_${side}_omRAS_half.mat
-#            -ri LABEL 0.2mm -rm $SDIR/seg_futrimom.nii.gz $SDIR/seg_futrimom_warped_to_hw.nii.gz \
+#           -ri LABEL 0.2mm -rm $SDIR/seg_futrimom.nii.gz $SDIR/seg_futrimom_warped_to_hw.nii.gz \
 
         # Compute overlap between the segmentations in halfway space
 #        c3d $SDIR/seg_bltrimhw.nii.gz $SDIR/seg_futrimom_affine_to_hw.nii.gz -overlap 1 > $QCDIR/overlap_affine_${side}.txt            
@@ -156,8 +154,7 @@ function aloha_qc_qsub()
         c3d $SDIR/futrimom_warped_to_hw.nii.gz -type short $QCDIR/${SUBJECT}_${TP_BL}_${TP_FU}_aloha_qc_${side}_futrimom_warped_to_hw.nii.gz
 
         # Copy the gif to a common directory for easy viewing
-	# keep for the gear output - same as qc files from ashs
-        cp $QCDIR/${SUBJECT}_${TP_BL}_${TP_FU}_aloha_qc_${side}.gif "$QcAllDir"
+        cp $QCDIR/${SUBJECT}_${TP_BL}_${TP_FU}_aloha_qc_${side}.gif tmp/all_qc/
 
     done
 
@@ -170,16 +167,15 @@ function aloha_qc_qsub()
     NCC_WL=$(cat $QCDIR/ncc_warped_left.txt | awk '$1==1 {print $2}')
     NCC_AR=$(cat $QCDIR/ncc_affine_right.txt | awk '$1==1 {print $2}')
     NCC_WR=$(cat $QCDIR/ncc_warped_right.txt | awk '$1==1 {print $2}') 
-    echo "${SUBJECT},${TP_BL},${TP_FU},${NCC_AL},${NCC_WL},${NCC_AR},${NCC_WR}" \
+    echo "${SUBJECT},${TP_BL},${TP_FU},${OVL_AL},${OVL_WL},${OVL_AR},${OVL_WR},${NCC_AL},${NCC_WL},${NCC_AR},${NCC_WR}" \
         > $QCDIR/${SUBJECT}_${TP_BL}_${TP_FU}_aloha_qc_summary.csv
 
 }
 
-
-while getopts 'a:b:f:l:r:n:s:v' arg
+while getopts 'a:B:b:F:f:L:l:R:r:n:s:v' arg
 do
     case "$arg" in
-	a|b|f|l|n|r|s|v)
+	a|B|b|F|f|L|l|n|R|r|s|v)
 	    eval "opt_${arg}='${OPTARG:=1}'"
 	    ;;
 	*)
@@ -191,4 +187,73 @@ done
 
 shift $(( "$OPTIND" - 1 ))
 
-aloha_qc_qsub "$opt_s" "$opt_b" "$opt_l" "$opt_r" "$opt_f" "$opt_a"
+SUBJECT="$opt_s"
+
+AlohaQcDir="/tmp/AlohaQcDir"
+AlohaDir="${AlohaQcDir}/Aloha"
+ROOT="$AlohaQcDir"
+WORK="${ROOT}/work/${SUBJECT}"
+INPUT="${ROOT}/input/${SUBJECT}"
+TMPDIR="${AlohaQcDir}/tmp"
+
+# TP_BL is YYYY-MM-DD of baseline directory
+# TP_FU is YYYY-MM-DD of followup directory
+# copy
+#   $opt_b to ${AlohaQcDir}/input/${SUBJECT}/${TP_BL}/t2_img.nii.gz
+#   $opt_f to ${INPUT}/${TP_FU}/t2_img.nii.gz
+#   $opt_l to $WORK/$TP_BL/preproc/left_fineseg_t2.nii.gz
+#   $opt_r to $WORK/$TP_BL/preproc/right_fineseg_t2.nii.gz
+
+if [ -e "$AlohaQcDir" ]
+then
+	rm -rf "$AlohaQcDir"
+else
+	mkdir -p "$AlohaQcDir"
+fi
+
+cd "$AlohaQcDir"
+
+TP_BL="$opt_B"
+TP_FU="$opt_F"
+
+TP_BL_T2File="${AlohaQcDir}/input/${SUBJECT}/${TP_BL}/t2_img.nii.gz"
+TP_FU_T2File="${AlohaQcDir}/input/${SUBJECT}/${TP_FU}/t2_img.nii.gz"
+TP_BL_Dir=$(dirname "$TP_BL_T2File")
+TP_FU_Dir=$(dirname "$TP_FU_T2File")
+
+[ -e "$TP_BL_Dir" ] || mkdir -p "$TP_BL_Dir"
+[ -e "$TP_FU_Dir" ] || mkdir -p "$TP_FU_Dir"
+
+[ -e "$TP_BLT2File" ] || cp "$opt_b" "$TP_BL_T2File"
+[ -e "$TP_FUT2File" ] || cp "$opt_f" "$TP_FU_T2File"
+
+LeftBlSegFile="${WORK}/${TP_BL}/preproc/left_fineseg_t2.nii.gz"
+RightBlSegFile="${WORK}/${TP_BL}/preproc/right_fineseg_t2.nii.gz"
+LeftBlSegDir=$(dirname "$LeftBlSegFile")
+RightBlSegDir=$(dirname "$RightBlSegFile")
+
+[ -e "$LeftBlSegDir" ] || mkdir -p "$LeftBlSegDir"
+[ -e "$RightBlSegDir" ] || mkdir -p "$RightBlSegDir"
+
+[ -e "$LeftBlSegFile" ] || cp "$opt_L" "$LeftBlSegFile"
+[ -e "$RightBlSegFile" ] || cp "$opt_R" "$RightBlSegFile"
+
+#
+# Alohabackend does not produce followup T2 segmented left/right images
+#
+#LeftFuSegFile="${WORK}/${TP_FU}/preproc/left_fineseg_t2.nii.gz"
+#RightFuSegFile="${WORK}/${TP_FU}/preproc/right_fineseg_t2.nii.gz"
+#LeftFuSegDir=$(dirname "$LeftFuSegFile")
+#RightFuSegDir=$(dirname "$RightFuSegFile")
+
+#[ -e "$LeftFuSegDir" ] || mkdir -p "$LeftFuSegDir"
+#[ -e "$RightFuSegDir" ] || mkdir -p "$RightFuSegDir"
+
+#[ -e "$LeftFuSegFile" ] || cp "$opt_l" "$LeftFuSegFile"
+#[ -e "$RightFuSegFile" ] || cp "$opt_r" "$RightFuSegFile"
+
+
+rsync -a "${opt_a}/" "${AlohaDir}/"
+
+aloha_qc_qsub "$SUBJECT" "$TP_BL" "$TP_FU" "$AlohaDir"
+
