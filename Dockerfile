@@ -9,8 +9,15 @@ ENV PATH=${FLYWHEEL}/flywheel/bin:/tk/greedy/build:/tk/cmrep/build:/tk/c3d/build
 ENV PYTHONPATH=${FLYWHEEL}/flywheel/lib
 
 RUN apt update
+RUN apt install -y			\
+	bc				\
+	csvkit				\
+	jq				\
+    	libopenblas-dev			\
+	libxt6				\
+	rsync
+
 RUN apt full-upgrade -y
-RUN apt install -y libopenblas-dev bc libxt6 jq csvkit
 
 COPY requirements.txt ${FLYWHEEL}/
 RUN pip install -r requirements.txt

@@ -5,14 +5,15 @@ Syntax="${CmdName} [-c config][-n][-v] {-b BaselineT1NiftiTrimmed}{-c BaselineT2
 
 #         -C ConfigJsonFile
 #         -b image          Filename of baseline 3D gradient echo MRI (ALOHA_BL_MPRAGE, T1w)
-#         -c image          Filename of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE, T2w)
+#         -f image          Filename of followup 3D gradient echo MRI (ALOHA_FU_MPRAGE, T1w)
 #
 #         -r image          Filename of left hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_L
 #         -s image          Filename of right hippocampus segmentation of baseline 3D gradient echo MRI (ALOHA_BL_MPSEG_
+#
 #         -t image          Filename of left subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE
 #         -u image          Filename of right subfield segmentation of baseline 2D focal fast spin echo MRI (ALOHA_BL_TS
 #
-#         -f image          Filename of followup 3D gradient echo MRI (ALOHA_FU_MPRAGE, T1w)
+#         -c image          Filename of baseline 2D focal fast spin echo MRI (ALOHA_BL_TSE, T2w)
 #         -g image          Filename of followup 2D focal fast spin echo MRI  (ALOHA_FU_TSE, T2w)
 #
 
@@ -31,9 +32,38 @@ do
 	esac
 done
 
+shift $(("$OPTIND" - 1))
+
 git clone https://github.com/ins0mniac2/aloha.git
 
-shift $(("$OPTIND" - 1))
+# All for building ImageMagick
+RUN apt install -y			\
+	build-essential			\
+	curl				\
+	git				\
+	pkg-config			\
+	libltdl-dev			\
+	libjpeg-dev			\
+	libpng-dev			\
+	libtiff-dev			\
+	libgif-dev			\
+	libfreetype6-dev 		\
+	liblcms2-dev			\
+	libxml2-dev
+
+
+if [ ! -e "/usr/local/bin/magick" ]
+then
+    IMAGEMAGICK_TAG=$(curl -fsSL https://api.github.com/repos/ImageMagick/ImageMagick/releases/latest | grep -oE '"tag_name": "[^"]+"' | head -n 1 | cut -d '"' -f4)
+    git clone --depth 1 --branch "$IMAGEMAGICK_TAG" https://github.com/ImageMagick/ImageMagick.git ~/ImageMagick
+
+    pushd ~/ImageMagick
+    ./configure --with-modules
+    make -j$(nproc)
+    make install
+    ldconfig /usr/local/lib
+    popd
+fi
 
 if [ -n "$opt_C" ]
 then
@@ -54,7 +84,7 @@ then
     BaselineT1LeftSegmentationFile=$(jq -r '.inputs.BaselineT1LeftSegmentation.location.path' "$ConfigJsonFile")
     BaselineT1RightSegmentationFile=$(jq -r '.inputs.BaselineT1RightSegmentation.location.path' "$ConfigJsonFile")
     BaselineT2LeftSegmentationFile=$(jq -r '.inputs.BaselineT2LeftSegmentation.location.path' "$ConfigJsonFile")
-    BaselineT2RightSegmentationFile=$(jq -r '.inputs.BaselineT1RightSegmentation.location.path' "$ConfigJsonFile")
+    BaselineT2RightSegmentationFile=$(jq -r '.inputs.BaselineT2RightSegmentation.location.path' "$ConfigJsonFile")
 
     FollowupT1NiftiTrimmedFile=$(jq -r '.inputs.FollowupT1NiftiTrimmed.location.path' "$ConfigJsonFile")
     FollowupT2NiftiFile=$(jq -r '.inputs.FollowupT2Nifti.location.path' "$ConfigJsonFile")
@@ -80,15 +110,16 @@ TmpDir=/tmp/aloha
 
 AlohaEngineArgs=()
 AlohaEngineArgs+=( -b "$BaselineT1NiftiTrimmedFile" )
+AlohaEngineArgs+=( -f "$FollowupT1NiftiTrimmedFile" )
+
 AlohaEngineArgs+=( -c "$BaselineT2NiftiFile" )
+AlohaEngineArgs+=( -g "$FollowupT2NiftiFile" )
 
 AlohaEngineArgs+=( -r "$BaselineT1LeftSegmentationFile" )
 AlohaEngineArgs+=( -s "$BaselineT1RightSegmentationFile" )
 AlohaEngineArgs+=( -t "$BaselineT2LeftSegmentationFile" )
 AlohaEngineArgs+=( -u "$BaselineT2RightSegmentationFile" )
 
-AlohaEngineArgs+=( -f "$FollowupT1NiftiTrimmedFile" )
-AlohaEngineArgs+=( -g "$FollowupT2NiftiFile" )
 
 AlohaEngineArgs+=( -w "$TmpDir" )
 

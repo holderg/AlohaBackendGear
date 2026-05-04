@@ -7,7 +7,8 @@ Jq='
      | to_entries[]
         | .key as $FilePath
         | .value.object.file_id as $FileId
-	| [ $FilePath, $FileId ]
+	| .value.location.name as $FileName
+	| [ $FilePath, $FileId, $FileName ]
         | @csv
 '
 
@@ -15,9 +16,10 @@ for line in $(jq -r "$Jq" "$ConfigJsonFile" | grep -v ",$" | sed 's/"//g')
 do
 	FilePath=$(echo "$line" | cut -f 1 -d ,)
 	FileId=$(echo "$line" | cut -f 2 -d ,)
+	FileName=$(echo "$line" | cut -f 3 -d ,)
 
 	FullDirectoryPath="${DownloadDir}/${FilePath}"
 	[ -e "$FullDirectoryPath" ] || mkdir -p "$FullDirectoryPath"
 
-	fwget -f --download --download-dir "$FullDirectoryPath" "$FileId"
+	echo fwget -f --download --download-dir "$FullDirectoryPath" "$FileId" "#" "$FileName"
 done
