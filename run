@@ -31,6 +31,8 @@ do
 	esac
 done
 
+git clone https://github.com/ins0mniac2/aloha.git
+
 shift $(("$OPTIND" - 1))
 
 if [ -n "$opt_C" ]

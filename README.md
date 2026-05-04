@@ -2,8 +2,12 @@
 
 clone
 git checkout qc
-./downloadInputFiles
 fw-beta gear build 
 # where are the gears ${FLYWHEEL}/{input,output} directories
-./run-gear.sh /data/holder/Aloha
+./run-gear.sh 
 
+# only needs to be done once as ./run-gear.sh uses host storage
+./downloadInputFiles
+
+# in the container
+./run -C config.test.json
