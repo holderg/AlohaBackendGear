@@ -37,16 +37,17 @@ shift $(("$OPTIND" - 1))
 git clone https://github.com/ins0mniac2/aloha.git
 
 # All for building ImageMagick
-RUN apt install -y			\
+apt install -y			        \
 	build-essential			\
+	ghostscript		        \
 	pkg-config			\
-	libltdl-dev			\
+	libfreetype6-dev 		\
+	libgif-dev			\
 	libjpeg-dev			\
+	liblcms2-dev			\
+	libltdl-dev			\
 	libpng-dev			\
 	libtiff-dev			\
-	libgif-dev			\
-	libfreetype6-dev 		\
-	liblcms2-dev			\
 	libxml2-dev
 
 
@@ -56,10 +57,12 @@ then
     git clone --depth 1 --branch "$IMAGEMAGICK_TAG" https://github.com/ImageMagick/ImageMagick.git ~/ImageMagick
 
     pushd ~/ImageMagick
+
     ./configure --with-modules
     make -j$(nproc)
     make install
     ldconfig /usr/local/lib
+
     popd
 fi
 
