@@ -3,7 +3,7 @@
 
 #
 # Example:
-# bash -x aloha_qc_qsub.sh -B "2023-11-16" -F "2023-12-19" -a /tmp/aloha -b ${FLYWHEEL}/input/BaselineT1NiftiTrimmed/7_anat_T1w_anat-T1w_20240103080739_7-trimmed.nii.gz  -f ${FLYWHEEL}/input/FollowupT1NiftiTrimmed/8_anat_T1w_anat-T1w_20240126091534_8-trimmed.nii.gz -L ${FLYWHEEL}/input/BaselineT2LeftSegmentation/16_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240103080739_16_ASHS-PMC-T2_lfseg_heur_left.nii.gz -R ${FLYWHEEL}/input/BaselineT2RightSegmentation/16_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240103080739_16_ASHS-PMC-T2_lfseg_heur_right.nii.gz -s M90195869 
+# bash -x aloha_qc_qsub.sh -B "2023-11-16" -F "2023-12-19" -a /tmp/aloha -b ${FLYWHEEL}/input/BaselineT2Nifti/16_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240103080739_16.nii.gz -f ${FLYWHEEL}/input/FollowupT2Nifti/17_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240126091534_17.nii.gz -L ${FLYWHEEL}/input/BaselineT2LeftSegmentation/16_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240103080739_16_ASHS-PMC-T2_lfseg_heur_left.nii.gz -R ${FLYWHEEL}/input/BaselineT2RightSegmentation/16_anat_T2w_acq_2DHiResMTL_anat-T2w_acq-2DHiResMTL_20240103080739_16_ASHS-PMC-T2_lfseg_heur_right.nii.gz -s M90195869 
 
 
 #
