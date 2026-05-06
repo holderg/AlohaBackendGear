@@ -31,6 +31,8 @@ COPY				   \
 	run			   \
 	${FLYWHEEL}/
 
+RUN echo ':set mouse-=a' > /root/.vimrc
+
 RUN cd ${FLYWHEEL}; git clone https://github.com/brainsciencecenter/flywheel.git; cd flywheel; git config pull.rebase false; git pull
 
 RUN chmod +x run
