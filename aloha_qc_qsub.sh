@@ -196,6 +196,8 @@ WORK="${ROOT}/work/${SUBJECT}"
 INPUT="${ROOT}/input/${SUBJECT}"
 TMPDIR="${AlohaQcDir}/tmp"
 
+FwOutput="${FLYWHEEL}/output"
+
 # TP_BL is YYYY-MM-DD of baseline directory
 # TP_FU is YYYY-MM-DD of followup directory
 # copy
@@ -206,7 +208,7 @@ TMPDIR="${AlohaQcDir}/tmp"
 
 if [ -e "$AlohaQcDir" ]
 then
-	rm -rf "$AlohaQcDir"
+	rm -rf "$AlohaQcDir"/*
 else
 	mkdir -p "$AlohaQcDir"
 fi
@@ -255,5 +257,13 @@ RightBlSegDir=$(dirname "$RightBlSegFile")
 
 rsync -a "${opt_a}/" "${AlohaDir}/"
 
-aloha_qc_qsub "$SUBJECT" "$TP_BL" "$TP_FU" "$AlohaDir"
+aloha_qc_qsub "$SUBJECT" "$TP_BL" "$TP_FU" "$AlohaDir" > /dev/null 
 
+ReturnCode="$?"
+
+[ "$ReturnCode" != 0 ] && exit "$ReturnCode"
+
+for i in "${AlohaDir}/qc/"*.gif
+do
+	echo "$i"
+done
