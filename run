@@ -91,8 +91,8 @@ then
 
     JobId=$(jq -r '.job.id | select(.)' "$ConfigJsonFile")
 
-    BaselineDate=$(jq -r '.inputs.BaselineT1NiftiTrimmed.object.info.AcquisitionDate' "$ConfigJsonFile" | sed -E 's/([0-9]{4})([0-9]{2})([0-9]{2})/\1-\2-\3/')
-    FollowupDate=$(jq -r '.inputs.FollowupT1NiftiTrimmed.object.info.AcquisitionDate' "$ConfigJsonFile" | sed -E 's/([0-9]{4})([0-9]{2})([0-9]{2})/\1-\2-\3/')
+    BaselineDate=$(jq -r '.inputs.BaselineT1NiftiTrimmed.object.file_id' "$ConfigJsonFile" | fwget -1 -f | jq -r .created | sed -E 's/T.*$//')
+    FollowupDate=$(jq -r '.inputs.FollowupT1NiftiTrimmed.object.file_id' "$ConfigJsonFile" | fwget -1 -f | jq -r .created | sed -E 's/T.*$//')
     SubjectLabel=$(fwget -1 -j "$JobId" | jq -r .parents.subject | fwget -1 | jq -r .label)
 
     BaselineT1NiftiTrimmedFile=$(jq -r '.inputs.BaselineT1NiftiTrimmed.location.path' "$ConfigJsonFile")
